@@ -1,0 +1,44 @@
+YomiFont
+========
+
+The SOURCE CODE in this repository (src/, scripts/, tests/, benchmarks/,
+tools/) is licensed under the MIT License, below.
+
+The FONTS produced by this repository (dist/*.ttf) are NOT covered by this
+licence. They are derivative works of JMdict and of Noto Sans JP and must be
+redistributed under CC BY-SA 4.0 while honouring the SIL Open Font License 1.1.
+See docs/licensing.md for the exact obligations.
+
+  - Reading data derived from JMdict, Copyright (C) Electronic Dictionary
+    Research and Development Group, Monash University.
+    Licensed CC BY-SA 4.0 -- https://www.edrdg.org/edrdg/licence.html
+    https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project
+
+  - Glyph outlines derived from Noto Sans JP, Copyright (C) The Noto Project
+    Authors. Licensed under the SIL Open Font License, Version 1.1.
+    "Noto" is a Reserved Font Name; this derivative is named YomiFont.
+    Full text: data/raw/OFL-notosansjp.txt
+
+
+MIT License
+-----------
+
+Copyright (c) 2026 YomiFont contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

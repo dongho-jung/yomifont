@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>YomiFont engine probe</title>
+<style>
+ body { font-family: -apple-system, system-ui, sans-serif; margin: 20px; }
+ pre { background:#111; color:#0f0; padding:10px; font-size:12px; overflow:auto; }
+ canvas { border:1px solid #ddd; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<h1>YomiFont engine probe</h1>
+<p>Renders each test string to a canvas and reports a <em>ruby ink signature</em>:
+the bounding box and column-occupancy of everything drawn above the em box.
+Different GSUB outcomes give different signatures, so engines can be compared
+without reading glyph IDs.</p>
+<pre id="log">running…</pre>
+
+<script>
+// (text, note).  Cases split by whether the rule crosses a Han/Kana boundary.
+const CASES = [
+  ["東京",        "all-Han lexical"],
+  ["日本語",      "all-Han longest match"],
+  ["日本",        "all-Han shorter"],
+  ["今日",        "all-Han jukujikun"],
+  ["銀行",        "all-Han"],
+  ["行った",      "Han+Kana: okurigana context"],
+  ["行きました",  "Han+Kana: okurigana context"],
+  ["分かりました","Han+Kana: okurigana context"],
+  ["食べる",      "Han+Kana: okurigana context"],
+  ["新しい",      "Han+Kana: okurigana context"],
+  ["取り戻す",    "Han+Kana: two ruby groups"],
+  ["行",          "isolated kanji"],
+  ["分",          "isolated kanji"],
+  ["食",          "isolated kanji"],
+];
+
+const SIZE = 100;           // px per em
+const PAD  = 200;           // room for ruby overhang on both sides
+
+function signature(text) {
+  const c = document.createElement("canvas");
+  c.width = PAD * 2 + text.length * SIZE + 100;
+  c.height = 400;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = "#000";
+  ctx.font = `${SIZE}px YomiProbe`;
+  ctx.textBaseline = "alphabetic";
+  const baseline = 300;
+  ctx.fillText(text, PAD, baseline);
+
+  // The ruby strip is everything above the top of the em box.  Kanji ink tops
+  // out at ~0.84 em, ruby sits at 0.90 em and up, so 0.87 em is a clean cut.
+  const cut = Math.round(baseline - 0.87 * SIZE);
+  const img = ctx.getImageData(0, 0, c.width, cut).data;
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, ink = 0;
+  const cols = new Set();
+  for (let y = 0; y < cut; y++) {
+    for (let x = 0; x < c.width; x++) {
+      if (img[(y * c.width + x) * 4] < 128) {
+        ink++;
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+        cols.add(x >> 3);            // 8px column buckets
+      }
+    }
+  }
+  if (ink === 0) return { ink: 0, bits: "" };
+  // Column-occupancy bitmap in 1/20 em buckets from -1em to +7em.  The ink
+  // bounding box alone cannot tell 日本語 -> にほんご apart from
+  // 日本 -> にほん plus 語 -> ご, because both span nearly the same range;
+  // the occupancy pattern between the extremes can.
+  const B0 = -20, B1 = 140, bucket = SIZE / 20;
+  let bits = "";
+  for (let b = B0; b < B1; b++) {
+    const px = Math.round(PAD + b * bucket);
+    let on = 0;
+    for (let x = px; x < px + bucket && !on; x++)
+      for (let y = 0; y < cut && !on; y++)
+        if (x >= 0 && x < c.width && img[(y * c.width + x) * 4] < 128) on = 1;
+    bits += on ? "#" : ".";
+  }
+  return {
+    ink,
+    // relative to the text origin, in 1/1000 em so it is font-size independent
+    x0: Math.round((x0 - PAD) * 1000 / SIZE),
+    x1: Math.round((x1 - PAD) * 1000 / SIZE),
+    top: Math.round((baseline - y0) * 1000 / SIZE),
+    cols: cols.size,
+    bits,
+  };
+}
+
+async function run() {
+  const ff = new FontFace("YomiProbe", `url("/dist/YomiFont-Regular.ttf?cb=${Date.now()}")`);
+  await ff.load();
+  document.fonts.add(ff);
+  await document.fonts.ready;
+
+  const results = {};
+  for (const [text, note] of CASES) results[text] = { note, ...signature(text) };
+
+  const payload = {
+    engine: (navigator.userAgent.match(/(Firefox|Edg|Chrome|Version)\/[\d.]+/g) || ["unknown"]).join("_")
+             .replace(/[^A-Za-z0-9._-]/g, "_"),
+    ua: navigator.userAgent,
+    results,
+  };
+  document.getElementById("log").textContent = JSON.stringify(payload, null, 1);
+  window.__probe = payload;
+  try {
+    await fetch("/report", { method: "POST", headers: { "Content-Type": "application/json" },
+                             body: JSON.stringify(payload) });
+    document.title = "REPORTED " + payload.engine;
+  } catch (e) {
+    document.title = "LOCAL ONLY";
+  }
+}
+run();
+</script>
+</body>
+</html>

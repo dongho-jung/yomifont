@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>YomiFont compatibility check</title>
+<style>
+  @font-face {
+    font-family: "YomiFont";
+    src: url("/dist/YomiFont-Regular.ttf") format("truetype");
+    font-display: block;
+  }
+  body { font-family: -apple-system, system-ui, sans-serif; margin: 24px; max-width: 1100px; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 15px; margin-top: 28px; color: #444; }
+  .yomi { font-family: "YomiFont"; font-size: 42px; line-height: 1.9; }
+  .lh   { font-family: "YomiFont"; font-size: 30px; line-height: normal;
+          background: repeating-linear-gradient(#fff 0 0); border: 1px solid #ddd; }
+  .lh div { background: #eef6ff; }
+  .lh div:nth-child(even) { background: #fff6ee; }
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cmp > div { border: 1px solid #ddd; padding: 8px; }
+  .plain { font-family: sans-serif; font-size: 42px; line-height: 1.9; }
+  #results { font-family: ui-monospace, monospace; font-size: 13px; white-space: pre;
+             background: #111; color: #0f0; padding: 12px; border-radius: 6px; }
+  .fail { color: #f66; }
+</style>
+</head>
+<body>
+<h1>YomiFont compatibility check</h1>
+
+<h2>1. Automatic furigana (no ruby markup, no JS, plain Unicode text)</h2>
+<div class="yomi" id="sample">私は昨日東京へ行きました。</div>
+<div class="yomi">日本語を勉強しています。</div>
+<div class="yomi">今日の天気はいいですね。</div>
+<div class="yomi">大人になってから分かりました。</div>
+
+<h2>2. Underlying text is unchanged (select and copy this line)</h2>
+<div class="yomi" id="copytest">銀行へ行った。</div>
+
+<h2>3. Line height / clipping — consecutive lines must not overlap</h2>
+<div class="lh">
+  <div>東京都新宿区</div>
+  <div>日本語能力試験</div>
+  <div>国際交流基金</div>
+</div>
+
+<h2>4. Width parity — ruby must not change advance widths</h2>
+<div class="cmp">
+  <div><div class="yomi" id="w1">日本語を勉強しています。</div></div>
+  <div><div class="plain" id="w2">日本語を勉強しています。</div></div>
+</div>
+
+<h2>Automated results</h2>
+<div id="results">running…</div>
+
+<script>
+const out = [];
+function log(ok, msg) { out.push((ok ? "PASS  " : "FAIL  ") + msg); }
+
+async function run() {
+  await document.fonts.ready;
+  const loaded = document.fonts.check('42px "YomiFont"');
+  log(loaded, "font loads (@font-face, document.fonts.check)");
+
+  // The DOM text must be exactly what was typed -- ruby is glyphs, not characters.
+  const t = document.getElementById("copytest").textContent;
+  log(t === "銀行へ行った。", "textContent unchanged: " + JSON.stringify(t));
+
+  // Selection API sees the original characters only.
+  const el = document.getElementById("copytest");
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const sel = range.toString();
+  log(sel === "銀行へ行った。", "Range.toString() unchanged: " + JSON.stringify(sel));
+
+  // Ruby must not widen the line: compare against the same text in a fallback
+  // font is meaningless (different metrics), so compare YomiFont against
+  // itself with the ccmp feature disabled.
+  const probe = document.createElement("span");
+  probe.style.cssText = 'font-family:"YomiFont";font-size:100px;position:absolute;visibility:hidden;white-space:pre;';
+  probe.textContent = "日本語を勉強しています。";
+  document.body.appendChild(probe);
+  const withRuby = probe.getBoundingClientRect().width;
+  probe.style.fontFeatureSettings = '"ccmp" 0';
+  const withoutRuby = probe.getBoundingClientRect().width;
+  log(Math.abs(withRuby - withoutRuby) < 0.5,
+      `advance width unchanged by ruby: ${withRuby.toFixed(1)} vs ${withoutRuby.toFixed(1)}`);
+  log(withRuby > 0 && Math.abs(withRuby - 1200) < 2,
+      `12 full-width chars at 100px = 1200px, measured ${withRuby.toFixed(1)}`);
+  probe.remove();
+
+  // Line box must be tall enough for the ruby (ascent 1330/1000 em).
+  const lh = document.querySelector(".lh div");
+  const r = lh.getBoundingClientRect();
+  log(r.height >= 30 * 1.5,
+      `line box ${r.height.toFixed(1)}px for 30px text (needs >= 45 for ruby)`);
+
+  document.getElementById("results").textContent = out.join("\n");
+  document.title = out.some(l => l.startsWith("FAIL")) ? "FAIL" : "ALL PASS";
+  window.__yomiResults = out;
+}
+run();
+</script>
+</body>
+</html>

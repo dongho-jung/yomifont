@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/*.ttf
+data/raw/
+data/normalized/
+tests/integration/reports/
+tools/ctshape/ctshape
+benchmarks/bench_*.ttf

@@ -1,0 +1,26 @@
+# YomiFont reading overrides
+#
+# Tier-4 decisions that neither JMdict's priority tags nor UniDic corpus counts
+# get right, listed explicitly so they are reviewable rather than buried in a
+# heuristic.  Format:  <surface>\t<reading>\t<reason>
+#
+# The dominant class here is UniDic's *lexeme* convention: its lemma reading for
+# 私 is ワタクシ and for 日本 is ニッポン, so a corpus tagged with UniDic reports
+# those even where an ordinary reader would want わたし / にほん.  The override
+# only selects among readings JMdict already attests; it can never invent one.
+#
+# surface	reading	reason
+私	わたし	UniDic lemma reading is ワタクシ; わたし is the ordinary modern reading
+私達	わたしたち	follows 私
+私たち	わたしたち	follows 私
+日本	にほん	UniDic lemma reading is ニッポン; にほん is the ordinary reading
+日本人	にほんじん	follows 日本
+日本語	にほんご	follows 日本
+日本国	にほんこく	follows 日本
+富士山	ふじさん	UniDic reports フジヤマ; ふじさん is standard
+明日	あした	あす and みょうにち are both attested; あした is the everyday reading
+一昨日	おととい	いっさくじつ is the formal variant
+一昨年	おととし	いっさくねん is the formal variant
+昨日	きのう	さくじつ is the formal variant
+今日	きょう	こんにち is the formal variant
+何	なに	なん is the pre-consonant sandhi form; なに is the citation reading

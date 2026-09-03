@@ -1,0 +1,33 @@
+[project]
+name = "yomifont"
+version = "0.1.0"
+description = "Automatic Japanese furigana at the font shaping layer"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "fonttools>=4.50",
+    "uharfbuzz>=0.39",
+    "brotli",
+    "zopfli",
+]
+
+[project.optional-dependencies]
+# UniDic is optional: it is a build-time evaluation oracle and prior source.
+# `pipeline.py --no-priors` produces a working font without it.
+eval = ["fugashi", "unidic-lite", "opentype-sanitizer"]
+dev = ["pytest"]
+
+[project.scripts]
+yomifont-build = "yomifont.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests/shaping"]

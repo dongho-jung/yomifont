@@ -163,6 +163,39 @@ a rule-count limit — it is entirely about how many *different readings share a
 first character*, which is why 300k JMdict rules fit comfortably and 738k
 name-heavy rules do not.
 
+### A SingleSubst can overflow, and nothing will save you
+
+Adding explicit ruby stopped the build with
+
+> `OTLOffsetOverflowError: ('GSUB', 'LookupIndex:', 745, 'SubTableIndex:', 0,
+> 'ItemName:', 'Coverage')` … `Don't know how to split GSUB lookup type 1`
+
+Lookup 745 was the `vert`/`vrt2` lookup — the one that maps every ruby glyph to
+a blank so ruby does not scatter down a vertical line. Explicit ruby tripled the
+ruby inventory, so that mapping went from 14,133 entries to **43,764**, and a
+SingleSubst format 2 is laid out as
+
+    SubstFormat(2)  coverageOffset(2)  glyphCount(2)  substituteGlyphIDs(2N)
+
+with the Coverage written *after* the substitute array. At N = 43,764 the
+Coverage sits at 87,532 bytes and the `Offset16` cannot reach it. The subtable
+is over the limit **on its own**, independent of everything around it.
+
+This one is not repairable by the toolchain. fontTools' overflow fixer can
+split a MultipleSubst, a LigatureSubst or a PairPos, but there is no splitter
+for SingleSubst — a format-2 SingleSubst is not normally large enough to need
+one. So the split has to be done when building the lookup: subtables of one
+lookup are tried in order and cover disjoint glyphs, which makes splitting
+exactly equivalent. `gsub.MAX_SINGLE_SUBST` caps it at 16,000 mappings.
+
+**The practical ceiling for a format-2 SingleSubst is ~32,765 mappings**, and
+rather fewer once anything else is packed between the subtable and its
+Coverage. It belongs in the table above:
+
+| limit | value | hit? |
+|---|---|---|
+| SingleSubst fmt 2 mappings | ~32,765 (Coverage must clear the substitute array) | **yes, at 43,764** |
+
 ### The repacker limit is softer
 
 fontTools tries HarfBuzz's `hb.repack` first and falls back to its own

@@ -27,6 +27,12 @@ spans a longer rule consumed differently than the tokenizer did.
 A shaping engine sees a run of glyphs and nothing else — no sentence, no syntax,
 no world knowledge, and in Blink not even the okurigana.
 
+Every wall in this section is a wall for *inferring* a reading. None of them
+applies once the author writes the reading down: `｜人気（ひとけ）` renders
+ひとけ, and `｜生物（なまもの）` renders なまもの, because nothing is being
+inferred. [explicit-ruby.md](explicit-ruby.md) covers what that costs and where
+it works — notably that Blink's script segmentation limits it to kana bases.
+
 ### Readings that depend on meaning
 
 ```

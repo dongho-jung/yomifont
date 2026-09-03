@@ -163,12 +163,26 @@ zero-advance, with `lsb == xMin`.
 ## 6. GSUB layout
 
 ```
-ccmp  →  Lookup C          ChainContextSubst fmt 1, 134 subtables, 300,364 rules
+ccmp  →  Lookup E          ChainContextSubst fmt 3, 128 subtables  ← explicit ruby
+                           one per (base length, ruby length); each carries one
+                           SingleSubst record per position
+         Lookup H          SingleSubst: ｜（） | ( ) → blank
+         Lookup P          SingleSubst: base glyph → protected duplicate
+         Lookup R0..R176   SingleSubst: kana → r.<cp>.<size>.<slot>, one per
+                           distinct (size, offset)
+      →  Lookup C          ChainContextSubst fmt 1, 134 subtables, 300,364 rules
          Lookup M0..M1374  MultipleSubst: base glyph → [ruby…, base glyph]
                            (a BLOCK rule maps it to [base glyph] alone)
 vert  →  Lookup V          SingleSubst: ruby → blank, + base punctuation forms
 vrt2  →  Lookup V
 ```
+
+Only **E** and **C** are wired into the feature; H, P and R are reached through
+`SubstLookupRecord`s. E is given a lower LookupList index than C on purpose:
+lookups run in index order over the whole buffer, so explicit ruby has to claim
+its base span — swapping it for protected duplicates — before the lexical
+lookup gets its pass. That, and not rule priority, is what enforces "explicit
+beats automatic". See [explicit-ruby.md](explicit-ruby.md).
 
 - **One `SequenceLookupRecord` per rule**, always at index 0. See
   [opentype-notes.md §2](opentype-notes.md#2-two-glyph-inserting-lookup-records-in-one-context-rule-are-not-portable).

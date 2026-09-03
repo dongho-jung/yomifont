@@ -88,9 +88,9 @@ def build_multiple_subst_lookups(
         st.Format = 1
         st.mapping = mapping
         lk = ot.Lookup()
-        lk.LookupType = 2
+        lk.LookupType = 7
         lk.LookupFlag = 0
-        lk.SubTable = [st]
+        lk.SubTable = [_extend(st, 2)]
         lk.SubTableCount = 1
         lookups.append(lk)
     return lookups, index
@@ -158,24 +158,148 @@ def build_chain_lookup(
         cur_size += size + 2 + 2  # ruleset offset + coverage entry
     flush()
 
+    if not subtables:
+        # No lexical rules at all (an explicit-ruby-only build). A Lookup with
+        # zero subtables is not something a validator has to accept, so emit
+        # nothing and let the caller wire up an empty feature.
+        return []
+
     lk = ot.Lookup()
-    lk.LookupType = 6
+    lk.LookupType = 7
     lk.LookupFlag = 0
-    lk.SubTable = subtables
-    lk.SubTableCount = len(subtables)
+    lk.SubTable = [_extend(st, 6) for st in subtables]
+    lk.SubTableCount = len(lk.SubTable)
     return [lk]
 
 
-def build_single_subst_lookup(mapping: dict[str, str]) -> ot.Lookup:
-    st = ot.SingleSubst()
-    st.Format = 2
-    st.mapping = dict(mapping)
+# A SingleSubst format 2 subtable stores its substitutes inline and reaches its
+# Coverage through an Offset16 that has to clear them:
+#
+#     SubstFormat(2) coverageOffset(2) glyphCount(2) substituteGlyphIDs(2N)
+#
+# so the Coverage lands at 6 + 2N and the subtable cannot hold much more than
+# 32,765 mappings -- and rather less once anything else is packed in between.
+# fontTools cannot rescue this ("Don't know how to split GSUB lookup type 1"),
+# so the split has to happen here. It bites on the vert/vrt2 lookup, which maps
+# every ruby glyph to a blank: 14k of them without explicit ruby, 44k with it.
+#
+# Subtables of one lookup are tried in order and cover disjoint glyphs, so
+# splitting is exactly equivalent.
+MAX_SINGLE_SUBST = 16_000
+
+
+def build_single_subst_lookup(mapping: dict[str, str],
+                              extension: bool = False) -> ot.Lookup:
+    items = sorted(mapping.items())
+    chunks = [dict(items[i:i + MAX_SINGLE_SUBST])
+              for i in range(0, max(len(items), 1), MAX_SINGLE_SUBST)] or [{}]
+    subtables = []
+    for chunk in chunks:
+        st = ot.SingleSubst()
+        st.Format = 2
+        st.mapping = chunk
+        subtables.append(_extend(st, 1) if extension else st)
     lk = ot.Lookup()
-    lk.LookupType = 1
     lk.LookupFlag = 0
-    lk.SubTable = [st]
-    lk.SubTableCount = 1
+    lk.LookupType = 7 if extension else 1
+    lk.SubTable = subtables
+    lk.SubTableCount = len(subtables)
     return lk
+
+
+def _extend(subtable, lookup_type: int):
+    """Wrap a subtable in an Extension (LookupType 7) record.
+
+    Extension replaces the Offset16 from a Lookup to its subtable with an
+    Offset32.  fontTools will do this on its own when a LookupList overflows,
+    but only by compiling the whole table, catching the overflow, promoting one
+    lookup and compiling again -- which on a GSUB this size is minutes of
+    repair.  Doing it up front makes the packing deterministic and the build
+    fast, and it is what large CJK fonts ship anyway.
+
+    It is *not* what makes explicit ruby compile.  That was a SingleSubst
+    overflow with a different cause; see MAX_SINGLE_SUBST.
+    """
+    ext = ot.ExtensionSubst()
+    ext.Format = 1
+    ext.ExtensionLookupType = lookup_type
+    ext.ExtSubTable = subtable
+    return ext
+
+
+def build_explicit_lookups(
+    placements: dict[tuple[int, int], list[tuple[float, int]]],
+    hide: dict[str, str],
+    protect: dict[str, str],
+    ruby: dict[tuple[float, int], dict[str, str]],
+    coverage: dict[str, list[str]],
+    order: dict[str, int],
+    first_index: int,
+) -> list[ot.Lookup]:
+    """Explicit Ruby: one ChainContextSubst rule per expression *shape*.
+
+    `placements` maps (base length, ruby length) -> the (size, offset) each ruby
+    character needs; see `explicit`.  The returned lookups are appended to the
+    LookupList starting at `first_index`, and the expression lookup is last.
+
+    Format 3 (coverage per position) rather than Format 2 (classes) because a
+    kana has to be admissible in *both* the base and the ruby span -- ｜本気
+    （マジ）has kana on one side and ｜そら（ソラ）on both -- and a ClassDef can
+    only put a glyph in one class.  Coverage tables are sets, so the fullwidth
+    and ASCII delimiters cost nothing extra, and fontTools interns the
+    identical ones so the shared BASE coverage is written once.
+
+    Every SubstLookupRecord is a SingleSubst, so the glyph count never changes
+    and later sequence indices stay addressable -- the failure this module's
+    header warns about only bites when a record inserts or removes glyphs.
+    """
+    # Extension everywhere in here: see `_extend`. The ruby lookups need it to
+    # compile at all, and the other two are wrapped for consistency so the
+    # block has no Offset16 reaching across it.
+    lookups: list[ot.Lookup] = [build_single_subst_lookup(hide, extension=True)]
+    hide_idx = first_index
+    protect_idx = first_index + 1
+    lookups.append(build_single_subst_lookup(protect, extension=True))
+
+    ruby_idx: dict[tuple[float, int], int] = {}
+    for cell in sorted(ruby):
+        ruby_idx[cell] = first_index + len(lookups)
+        lookups.append(build_single_subst_lookup(ruby[cell], extension=True))
+
+    cov = {k: _coverage(v, order) for k, v in coverage.items()}
+    subtables = []
+    # Longest expressions first.  Nothing actually depends on it -- the open
+    # and close delimiters pin B and N uniquely -- but subtable order is
+    # priority order, so being explicit costs nothing and documents intent.
+    for (b, n), cells in sorted(placements.items(), key=lambda kv: (-kv[0][0], -kv[0][1])):
+        st = ot.ChainContextSubst()
+        st.Format = 3
+        st.BacktrackGlyphCount = 0
+        st.BacktrackCoverage = []
+        st.LookAheadGlyphCount = 0
+        st.LookAheadCoverage = []
+        st.InputCoverage = ([cov["start"]] + [cov["base"]] * b + [cov["open"]]
+                            + [cov["ruby"]] * n + [cov["close"]])
+        st.InputGlyphCount = len(st.InputCoverage)
+        records = [(0, hide_idx), (b + 1, hide_idx), (b + n + 2, hide_idx)]
+        records += [(1 + j, protect_idx) for j in range(b)]
+        records += [(b + 2 + i, ruby_idx[cells[i]]) for i in range(n)]
+        st.SubstLookupRecord = []
+        for idx, lk_idx in sorted(records):
+            rec = ot.SubstLookupRecord()
+            rec.SequenceIndex = idx
+            rec.LookupListIndex = lk_idx
+            st.SubstLookupRecord.append(rec)
+        st.SubstCount = len(st.SubstLookupRecord)
+        subtables.append(st)
+
+    lk = ot.Lookup()
+    lk.LookupType = 7
+    lk.LookupFlag = 0
+    lk.SubTable = [_extend(st, 6) for st in subtables]
+    lk.SubTableCount = len(lk.SubTable)
+    lookups.append(lk)
+    return lookups
 
 
 SCRIPTS = ["DFLT", "hani", "kana", "latn"]
@@ -232,18 +356,20 @@ def build_gsub(lookups: list[ot.Lookup],
     return gsub
 
 
+def _inner(subtable):
+    """Unwrap an Extension record; everything is wrapped now (see `_extend`)."""
+    return getattr(subtable, "ExtSubTable", subtable)
+
+
 def stats(chain_lookups: list[ot.Lookup], ms_lookups: list[ot.Lookup]) -> dict:
-    n_rules = sum(
-        len(rs.ChainSubRule)
-        for lk in chain_lookups
-        for st in lk.SubTable
-        for rs in st.ChainSubRuleSet
-    )
-    n_first = sum(len(st.Coverage.glyphs) for lk in chain_lookups for st in lk.SubTable)
-    n_map = sum(len(st.mapping) for lk in ms_lookups for st in lk.SubTable)
+    chain_subs = [_inner(st) for lk in chain_lookups for st in lk.SubTable]
+    n_rules = sum(len(rs.ChainSubRule)
+                  for st in chain_subs for rs in st.ChainSubRuleSet)
+    n_first = sum(len(st.Coverage.glyphs) for st in chain_subs)
+    n_map = sum(len(_inner(st).mapping) for lk in ms_lookups for st in lk.SubTable)
     return {
         "chain_rules": n_rules,
-        "chain_subtables": sum(len(lk.SubTable) for lk in chain_lookups),
+        "chain_subtables": len(chain_subs),
         "chain_first_glyphs": n_first,
         "multiple_subst_lookups": len(ms_lookups),
         "multiple_subst_mappings": n_map,

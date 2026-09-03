@@ -1,10 +1,17 @@
 # YomiFont
 
-**Automatic Japanese furigana at the font shaping layer.**
+**Japanese furigana at the font shaping layer.**
 
 YomiFont compiles lexical and morphological reading rules into OpenType shaping
 tables to display furigana without modifying the underlying text or requiring a
 runtime analyzer.
+
+It does this two ways:
+
+| | |
+|---|---|
+| **Automatic Ruby** | YomiFont determines a safe reading from lexical data, and abstains when it cannot |
+| **Explicit Ruby** | the author supplies the reading directly in the text: `｜月（ライト）` |
 
 Install the font, select it, and type ordinary Japanese:
 
@@ -41,8 +48,9 @@ engine can see determines their reading.
 | Coverage — kanji tokens that receive ruby | 79.1 % |
 | Coverage under Blink's script segmentation | 48.9 % (precision 99.87 %) |
 | Safe lexical rules | 300,364 |
-| Total glyphs / ruby glyphs | 19,849 / 14,194 |
-| Font size | 11.2 MB (GSUB 8.8 MB) |
+| Explicit-ruby rules (no vocabulary at all) | 128 |
+| Total glyphs / ruby glyphs | 63,053 / 46,877 |
+| Font size | 15.3 MB (GSUB 8.9 MB) |
 | GPOS table | **none — the font has no GPOS at all** |
 | OpenType Sanitizer (what Chrome and Firefox require) | PASS |
 
@@ -70,6 +78,49 @@ its place.
 
 Proper nouns are included when their reading is determined — 東京, 富士山,
 任天堂 — because the criterion is determinism, not lexical category.
+
+## Explicit Ruby
+
+For everything the automatic side gives up — ateji, 義訓, names, coined words,
+or simply a reading you want — write it into the text:
+
+```
+   ライト        そら          マジ          とも
+   月            宇宙          本気          強敵
+
+｜月（ライト）  ｜宇宙（そら）  ｜本気（マジ）  ｜強敵（とも）
+|月(ライト)     |宇宙(そら)     |本気(マジ)     |強敵(とも)
+```
+
+Both syntaxes are equivalent, and the markup disappears when it renders. The
+explicit reading always wins:
+
+```
+東京           -> とうきょう      automatic
+｜東京（エド）  -> エド            explicit, and the automatic reading is suppressed
+```
+
+Automatic ruby keeps working around it — `昨日、｜月（ライト）を見た。` sets
+きのう over 昨日, ライト over 月 and み over 見.
+
+**No dictionary is involved.** The rules match the *shape* of an expression —
+how many base characters, how many ruby characters — so a base string the font
+has never seen still takes a reading:
+
+```
+｜超絶暗黒剣（ダークネスブレード）
+```
+
+128 rules cover every combination up to **base ≤ 8, ruby ≤ 16**, over a
+183-character kana alphabet, reusing the same ruby glyphs, the same layout and
+the same three sizes as the automatic side. Out-of-range or malformed markup is
+left visibly unchanged, never partly transformed.
+
+The catch is Chrome: Blink itemises text into script runs before shaping, so
+an expression that crosses a Han↔Kana boundary is never seen whole and gets no
+ruby. Kana bases work; kanji bases do not. Safari, CoreText and HarfBuzz render
+all cases. [docs/explicit-ruby.md](docs/explicit-ruby.md) has the per-engine
+measurements and the reasoning behind the limits.
 
 ## Typography
 

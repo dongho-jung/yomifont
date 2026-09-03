@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>YomiFont DOM render check</title>
+<style>
+ @font-face { font-family: Yomi; src: url("/dist/YomiFont-Regular.ttf"); }
+ body { margin: 0; padding: 16px; background: #fff;
+        font-family: -apple-system, system-ui, sans-serif; }
+ .r { font-family: Yomi; font-size: 60px; line-height: 2.1; white-space: pre; }
+ h2 { font: 600 13px/1.6 -apple-system, system-ui, sans-serif; color: #555;
+      margin: 18px 0 0; }
+ .narrow { width: 9.5em; outline: 1px dashed #ccc; white-space: normal;
+           word-break: break-all; }
+</style>
+</head>
+<body>
+<!--
+  The canvas-based probes cannot be trusted for this: Chrome's canvas 2D text
+  path does not apply ccmp for these fonts even though its DOM path does, and
+  WebKit reports an inline-box width that ignores the substitution. Screenshot
+  this page instead -- it is ordinary DOM text, which is what a reader sees.
+
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+        --headless=new --screenshot=/tmp/domtest.png --window-size=1500,1400 \
+        http://127.0.0.1:8777/tests/integration/domtest.html
+-->
+<h2>automatic ruby</h2>
+<div class="r">東京 日本語 図書館 市場</div>
+
+<h2>explicit ruby — fullwidth ｜BASE（RUBY）</h2>
+<div class="r">｜月（ライト） ｜宇宙（そら） ｜本気（マジ）</div>
+
+<h2>explicit ruby — ascii |BASE(RUBY)</h2>
+<div class="r">|月(ライト) |宇宙(そら) |本気(マジ)</div>
+
+<h2>explicit overrides automatic, and automatic keeps working around it</h2>
+<div class="r">東京 ｜東京（エド） 昨日、｜月（ライト）を見た。</div>
+
+<h2>kana base — the only shape Blink can shape whole</h2>
+<div class="r">｜つき（ツキ） ｜ほんき（マジ）</div>
+
+<h2>malformed markup stays visible</h2>
+<div class="r">｜月（ライト ｜月（） 月（ライトという意味）</div>
+
+<h2>line wrap: a break inside an expression shows the markup, never half of it</h2>
+<div class="r narrow">｜日本語能力試験（にほんごのうりょくしけん）の勉強</div>
+</body>
+</html>

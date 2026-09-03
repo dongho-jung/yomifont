@@ -169,6 +169,57 @@ def add_ruby_glyphs(
     return new
 
 
+def add_protected_glyphs(font: TTFont, names: list[str],
+                         prefix: str = "x.") -> dict[str, str]:
+    """Identical-looking duplicates of the glyphs that can start a lexical rule.
+
+    Explicit ruby is authoritative, so a base span carrying a user-supplied
+    reading must not also collect an automatic one.  Both lookups live in
+    `ccmp` and lookups run in LookupList order over the whole buffer, so the
+    explicit lookup cannot "consume" the span the way a single rule consumes
+    its own match -- the automatic lookup gets its own pass regardless.
+
+    Swapping each base glyph for a duplicate takes the span out of the
+    automatic lookup's Coverage *and* out of every rule's Input, so nothing can
+    match there.  Only glyphs that can begin a rule need a duplicate; the rest
+    are already unreachable as a rule's first character.
+
+    Returns original glyph name -> duplicate name.
+    """
+    glyf = font["glyf"]
+    hmtx = font["hmtx"]
+    vmtx = font["vmtx"] if "vmtx" in font else None
+    order = list(font.getGlyphOrder())
+    out: dict[str, str] = {}
+    new: list[str] = []
+    for name in names:
+        if name not in glyf.glyphs:
+            continue
+        dup = prefix + name
+        out[name] = dup
+        if dup in glyf.glyphs:
+            continue
+        g = Glyph()
+        g.numberOfContours = -1
+        c = GlyphComponent()
+        c.glyphName = name
+        c.x = c.y = 0
+        c.flags = 0
+        c.transform = [[1, 0], [0, 1]]
+        g.components = [c]
+        glyf.glyphs[dup] = g
+        hmtx.metrics[dup] = hmtx.metrics[name]
+        if vmtx is not None and name in vmtx.metrics:
+            vmtx.metrics[dup] = vmtx.metrics[name]
+        new.append(dup)
+    if new:
+        font.setGlyphOrder(order + new)
+        font["maxp"].numGlyphs = len(font.getGlyphOrder())
+        for dup in new:
+            glyf.glyphs[dup].recalcBounds(glyf)
+    return out
+
+
 def add_blank_glyph(font: TTFont, name: str = "ruby.blank") -> str:
     """A zero-advance empty glyph, used to suppress ruby in vertical mode."""
     glyf = font["glyf"]

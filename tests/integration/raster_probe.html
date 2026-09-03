@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>ruby raster probe</title></head>
+<body>
+<pre id="log">running…</pre>
+<script>
+// Draw each letter on its own and count ink above the em box.  No GSUB is
+// involved -- the letters map straight to the composites -- so this separates
+// "the engine did not shape it" from "the engine did not draw it".
+async function run() {
+  const FONT_URL = new URLSearchParams(location.search).get("font")
+                   || "/dist/RasterTest.ttf";
+  const diag = { font_url: FONT_URL };
+  const ff = new FontFace("RasterProbe", `url("${FONT_URL}?cb=${Date.now()}")`);
+  try { await ff.load(); document.fonts.add(ff); await document.fonts.ready;
+        diag.loaded = true; }
+  catch (e) { diag.loaded = false; diag.error = String(e && e.message || e); }
+
+  const results = {};
+  for (const ch of "AБCDEF".replace("Б","B")) {
+    const c = document.createElement("canvas");
+    c.width = 2000; c.height = 500;
+    const cx = c.getContext("2d", { willReadFrequently: true });
+    cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height);
+    cx.fillStyle = "#000";
+    cx.font = "100px RasterProbe";
+    cx.textBaseline = "alphabetic";
+    const originX = 900, baseline = 400;
+    cx.fillText(ch, originX, baseline);
+    const d = cx.getImageData(0, 0, c.width, c.height).data;
+    let total = 0, above = 0, y0 = 1e9, y1 = -1e9, x0 = 1e9, x1 = -1e9;
+    for (let y = 0; y < c.height; y++)
+      for (let x = 0; x < c.width; x++)
+        if (d[(y * c.width + x) * 4] < 128) {
+          total++;
+          if (y < baseline - 90) above++;
+          if (y < y0) y0 = y; if (y > y1) y1 = y;
+          if (x < x0) x0 = x; if (x > x1) x1 = x;
+        }
+    results[ch] = { total, above,
+      box: total ? [x0 - originX, baseline - y1, x1 - originX, baseline - y0] : null };
+  }
+  const payload = {
+    diag,
+    engine: ((navigator.userAgent.match(/(Firefox|Edg|Chrome|Version)\/[\d.]+/g) || ["unknown"]).join("_")
+             + "_raster").replace(/[^A-Za-z0-9._-]/g, "_"),
+    ua: navigator.userAgent, results,
+  };
+  document.getElementById("log").textContent = JSON.stringify(payload, null, 1);
+  try { await fetch("/report", { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    document.title = "REPORTED"; } catch (e) { document.title = "LOCAL"; }
+}
+run();
+</script>
+</body>
+</html>

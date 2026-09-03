@@ -11,41 +11,57 @@ open http://127.0.0.1:8777/tests/integration/engine_probe.html   # in each brows
 
 ## Summary
 
-| engine | GSUB runs | readings correct | abstentions honoured | coverage | notes |
-|---|---|---|---|---|---|
-| HarfBuzz 14.2.1 (`hb-shape`, `uharfbuzz`) | yes | 99.94 % | yes | 79.1 % | reference |
-| CoreText (macOS 26.5, `tools/ctshape`) | yes | identical glyph stream to HarfBuzz | yes | 79.1 % | |
-| Safari 26.5 / WebKit | yes | **16/16 probe cases match HarfBuzz exactly** | yes | 79.1 % | |
-| Chrome 152 / Blink | yes, but script-segmented | 99.87 % | yes | **48.9 %** | **see open issue below** |
-| Firefox | not tested (not installed) | | | | |
-| DirectWrite / Windows | not tested (no Windows host) | | | | |
-| Word / LibreOffice / Adobe | not tested | | | | |
+| engine | GSUB runs | readings correct | abstentions honoured | coverage | explicit ruby | notes |
+|---|---|---|---|---|---|---|
+| HarfBuzz 14.2.1 (`hb-shape`, `uharfbuzz`) | yes | 99.94 % | yes | 79.1 % | all cases | reference |
+| CoreText (macOS 26.5, `tools/ctshape`) | yes | identical glyph stream to HarfBuzz | yes | 79.1 % | all cases | |
+| Safari 26.6 / WebKit | yes | **16/16 probe cases match HarfBuzz exactly** | yes | 79.1 % | **18/18** | |
+| Chrome 152 / Blink | yes, but script-segmented | 99.87 % | yes | **48.9 %** | **6/18, kana bases only** | |
+| Firefox | not tested (not installed) | | | | | |
+| DirectWrite / Windows | not tested (no Windows host) | | | | | |
+| Word / LibreOffice / Adobe | not tested | | | | | |
 
 Untested rows are untested, not "probably fine".
 
-## Open issue: Chrome 152 and the Phase 2 font
+Explicit ruby is measured separately by `explicit_probe.html`; the per-case
+results and the reason Blink can only manage kana bases are in
+[explicit-ruby.md](explicit-ruby.md).
 
-In one controlled session, the browser probe measured Chrome 152 rendering the
-**Phase 1** font's ruby (2,674 ink pixels above the em box for 東京) and the
-**Phase 2** font's ruby not at all (0 pixels), with identical base-text
-rendering. Removing the block rules did not change it. The Chrome probe then
-stopped reporting altogether — including for the Phase 1 font that had worked
-minutes earlier — so the cause was never isolated.
+## Resolved: the Chrome 152 "Phase 2 renders no ruby" issue
 
-What is known:
+This was a **defect in the probe, not in Chrome or the font.**
 
-* Safari 26.5 renders the Phase 2 font correctly on all 16 probe cases.
-* HarfBuzz 14.2.1 and CoreText both render it correctly.
-* OpenType Sanitizer 9.2.0 passes the font.
-* The two fonts are structurally similar (same tables, same `maxp` component
-  depth of 2, lsb range well inside int16, `indexToLocFormat` 1 in both).
+The finding reproduces exactly and reliably: in headless Chrome 152, the canvas
+probe measures 2,674 ink pixels above the em box for 東京 with the Phase 1 font
+and **0** with the Phase 2 font, with identical base-text ink (6,493 px in
+both). Removing `vert`/`vrt2`, removing the imported heavier-weight ruby
+outlines, and giving the ruby glyphs a non-zero advance all leave it at 0.
 
-**Treat Chrome support as unverified for Phase 2 until this is reproduced and
-resolved.** The Phase 1 font is known to work in Chrome 151 and 152; the
-regression, if it is one, was introduced somewhere in the Phase 2 glyph
-inventory (14,194 ruby glyphs across three sizes, outlines imported from a
-heavier weight instance) or in the rule set. `?font=` on the probe URL selects
-which font to measure, which is the harness for bisecting it.
+It is a **canvas-path** artifact. Chrome's canvas 2D text pipeline does not
+apply `ccmp` for these fonts; its DOM pipeline does. Rendering the same strings
+in the DOM and screenshotting shows Phase 2 ruby drawing correctly and
+identically to Phase 1:
+
+```bash
+./tests/integration/server.py &
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+  --screenshot=/tmp/domtest.png --window-size=1400,700 \
+  http://127.0.0.1:8777/tests/integration/domtest.html
+```
+
+Two further checks separate the layers:
+
+* `raster_probe.html` (font from `make_raster_font.py`) maps ruby-style
+  composites straight into `cmap`, so no shaping is involved. Chrome draws
+  **all** of them — one-level and two-level composites, at y=900 and y=940, and
+  at an x offset of −6,900 units. So rasterisation was never the problem.
+* `explicit_probe.html` measures the DOM inline-box width, and Chrome collapses
+  it exactly as expected wherever the run is not script-split. So GSUB is
+  applied in the DOM path.
+
+**Chrome 152 renders the Phase 2 font correctly.** `engine_probe.html`'s
+canvas-based ink signature under-reports it and should not be used to judge
+Chrome; use the DOM screenshot or the width measurement instead.
 
 ## What is verified
 

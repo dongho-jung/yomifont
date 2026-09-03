@@ -5,7 +5,8 @@ WEB      = dist/YomiFont-Web-Regular.ttf
 EVAL_N  ?= 20000
 TRAIN   ?= 20000:150000
 
-.PHONY: help venv data font web all test eval eval-blink visual names bench tools serve clean distclean
+.PHONY: help venv data font web all test eval eval-blink visual names bench \
+        bench-explicit tools serve clean distclean
 
 help:
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -83,6 +84,9 @@ names: ## experimental build with JMnedict proper names (does NOT compile, see d
 
 bench: ## scaling benchmark, 1k -> all rules
 	$(PYPATH) $(PY) benchmarks/scale.py --sizes 1000,5000,10000,25000,50000,100000,200000,300000,0
+
+bench-explicit: ## explicit ruby scales by span length, not vocabulary
+	$(PYPATH) $(PY) benchmarks/explicit_scale.py
 
 serve: ## serve the repo for the browser compatibility harness
 	$(PY) tests/integration/server.py

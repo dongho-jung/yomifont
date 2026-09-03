@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 sys.path.insert(0, HERE)
 
 from yomifont import build as build_mod  # noqa: E402
+from yomifont import explicit  # noqa: E402
 from yomifont import jmdict, jmnedict, lexicon, rules as rules_mod, safety  # noqa: E402
 
 
@@ -39,6 +40,16 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--reparse", action="store_true")
     ap.add_argument("--stats-out", default="")
+    ap.add_argument("--no-explicit", action="store_true",
+                    help="leave out Explicit Ruby (｜BASE（RUBY）)")
+    ap.add_argument("--explicit-base", type=int, default=explicit.DEFAULT_LIMITS.base,
+                    help="maximum base characters in an explicit expression")
+    ap.add_argument("--explicit-ruby", type=int, default=explicit.DEFAULT_LIMITS.ruby,
+                    help="maximum ruby characters in an explicit expression")
+    ap.add_argument("--explicit-grid", type=int, default=explicit.GRID,
+                    help="explicit-ruby placement lattice, font units")
+    ap.add_argument("--explicit-latin", action="store_true",
+                    help="also allow Latin and digits *inside* the ruby")
     args = ap.parse_args()
 
     if args.reparse or not os.path.exists(args.lexicon):
@@ -76,8 +87,12 @@ def main() -> int:
         rs = sorted(rs, key=lambda r: (-len(r.seq), r.seq))[: args.limit]
         print(f"[rules]   truncated to {len(rs)}")
 
+    limits = None if args.no_explicit else explicit.Limits(args.explicit_base,
+                                                           args.explicit_ruby)
     info = build_mod.build_font(rs, base_path=args.base, out_path=args.out,
-                                family=args.family)
+                                family=args.family, explicit=limits,
+                                explicit_grid=args.explicit_grid,
+                                explicit_latin=args.explicit_latin)
     info["rule_stats"] = c
     info["safety"] = rep
     if args.stats_out:

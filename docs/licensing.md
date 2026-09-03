@@ -5,11 +5,23 @@ the distributed font and carry obligations; two are build-time tools and do not.
 
 | input | license | in the font? | obligation |
 |---|---|---|---|
-| JMdict | CC BY-SA 4.0 | **yes** (readings) | attribution + ShareAlike |
-| Noto Sans JP | SIL OFL 1.1 | **yes** (outlines) | Reserved Font Name, no sale alone |
+| JMdict | CC BY-SA 4.0 (EDRDG) | **yes** (readings) | attribution + ShareAlike |
+| JMnedict | CC BY-SA (EDRDG) | only in the experimental names build | attribution + ShareAlike |
+| Noto Sans JP | SIL OFL 1.1 | **yes** (outlines, two weights) | Reserved Font Name, no sale alone |
 | UniDic (unidic-lite) | BSD / LGPL / GPL tri-license | no | none |
 | Tatoeba sentences | CC BY 2.0 FR | no | none |
 | YomiFont's own code | MIT | n/a | — |
+
+### JMnedict
+
+The Japanese Multilingual Named Entity Dictionary is EDRDG's proper-name
+dictionary, distributed under the same Creative Commons Attribution-ShareAlike
+terms as JMdict. Documentation: <https://www.edrdg.org/enamdict/enamdict_doc.html>.
+
+It is parsed and classified by this repository, but the shipped
+`dist/YomiFont-Regular.ttf` is built from JMdict only, because the combined rule
+set exceeds the GSUB LookupList limit (see docs/limitations.md). Any build that
+does include it carries the same attribution and ShareAlike obligation.
 
 ---
 
@@ -53,7 +65,9 @@ artefact is licensed as CC BY-SA 4.0 *and* carries the OFL notice.
 
 Copyright © The Noto Project Authors. Retrieved from
 `google/fonts/ofl/notosansjp/`; the licence text is kept verbatim at
-`data/raw/OFL-notosansjp.txt`.
+`data/raw/OFL-notosansjp.txt`. Two instances of the variable font are used: the
+body text at wght 400 and the ruby outlines at wght 500, both derived from the
+same OFL source.
 
 Three OFL clauses matter here:
 
@@ -77,17 +91,12 @@ is tri-licensed BSD / LGPL / GPL by the National Institute for Japanese
 Language and Linguistics. It is used through
 [fugashi](https://github.com/polm/fugashi) (MIT) over MeCab (BSD/LGPL/GPL).
 
-UniDic is used for two things, both at build time:
-
-- as an **evaluation oracle** (`scripts/evaluate.py`), and
-- to derive **frequency priors** (`scripts/build_priors.py`).
-
-The priors are *counts over (surface, reading) pairs that JMdict already
-contains*. No UniDic reading, lemma, or dictionary entry is copied into the
-font, and a pair JMdict does not have can never appear in the output. The
-`--no-priors` build path removes the dependency entirely and produces a working
-font (91.18 % vs 92.44 % correct tokens; see
-[compatibility.md](compatibility.md)).
+UniDic is used for exactly one thing, at build time: as an **evaluation
+oracle** (`scripts/evaluate.py`). Phase 1 also derived frequency priors from it
+to pick between competing readings; Phase 2 removed that entirely, because a
+corpus can tell you which reading is more common but never that the other one is
+wrong. Nothing from UniDic influences what the font says a word reads, and the
+font builds without it.
 
 Because none of it is redistributed, UniDic's licence imposes no obligation on
 the font. It is documented here anyway so the provenance of every number in

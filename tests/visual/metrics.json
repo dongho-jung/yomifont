@@ -1,0 +1,436 @@
+{
+ "Phase 1": {
+  "東京": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.027,
+   "max_overhang_left_em": 0.1495,
+   "worst_spacing_deviation": 0.0401
+  },
+  "京都": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.027,
+   "max_overhang_left_em": -0.08,
+   "worst_spacing_deviation": 0.0381
+  },
+  "今日": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.025,
+   "max_overhang_left_em": -0.33,
+   "worst_spacing_deviation": 0.0279
+  },
+  "日本語": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.042,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.068
+  },
+  "学校": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.032,
+   "worst_spacing_deviation": 0.06
+  },
+  "図書館": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.026,
+   "max_overhang_left_em": -0.3505,
+   "worst_spacing_deviation": 0.0844
+  },
+  "日本語能力試験": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0265,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.1141
+  },
+  "国際交流基金": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.017,
+   "max_overhang_left_em": -0.0865,
+   "worst_spacing_deviation": 0.0759
+  },
+  "東京都新宿区": {
+   "ruby_groups": 4,
+   "min_group_gap_em": -0.146,
+   "group_gaps_em": [
+    -0.116,
+    -0.146,
+    0.3668
+   ],
+   "ruby_to_base_gap_em": 0.0265,
+   "max_overhang_left_em": -0.1005,
+   "worst_spacing_deviation": 0.0411
+  },
+  "東京大学": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0225,
+   "max_overhang_left_em": 0.1495,
+   "worst_spacing_deviation": 0.14
+  },
+  "日本語学校": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.0964
+  },
+  "京都大学病院": {
+   "ruby_groups": 2,
+   "min_group_gap_em": -0.068,
+   "group_gaps_em": [
+    -0.068
+   ],
+   "ruby_to_base_gap_em": 0.022,
+   "max_overhang_left_em": -0.08,
+   "worst_spacing_deviation": 0.1355
+  },
+  "国際交流基金東京": {
+   "ruby_groups": 2,
+   "min_group_gap_em": -0.123,
+   "group_gaps_em": [
+    -0.123
+   ],
+   "ruby_to_base_gap_em": 0.017,
+   "max_overhang_left_em": -0.0865,
+   "worst_spacing_deviation": 0.0759
+  },
+  "行く": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0545,
+   "max_overhang_left_em": -0.313,
+   "worst_spacing_deviation": 0.0
+  },
+  "行う": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0335,
+   "max_overhang_left_em": 0.1975,
+   "worst_spacing_deviation": 0.0739
+  },
+  "食べる": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.041,
+   "max_overhang_left_em": -0.3005,
+   "worst_spacing_deviation": 0.0
+  },
+  "取り戻す": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.085,
+   "max_overhang_left_em": -0.3505,
+   "worst_spacing_deviation": 0.5168
+  },
+  "承る": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0825,
+   "max_overhang_left_em": 0.667,
+   "worst_spacing_deviation": 0.1119
+  },
+  "富士山": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.521,
+   "worst_spacing_deviation": 0.1688
+  },
+  "新幹線": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0335,
+   "max_overhang_left_em": -0.1185,
+   "worst_spacing_deviation": 0.1331
+  },
+  "駅前": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.058,
+   "worst_spacing_deviation": 0.066
+  },
+  "自転車": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.019,
+   "max_overhang_left_em": -0.362,
+   "worst_spacing_deviation": 0.1941
+  },
+  "私は昨日東京へ行きました。": {
+   "ruby_groups": 4,
+   "min_group_gap_em": 0.198,
+   "group_gaps_em": [
+    1.131,
+    0.198,
+    1.1605
+   ],
+   "ruby_to_base_gap_em": 0.027,
+   "max_overhang_left_em": 0.2225,
+   "worst_spacing_deviation": 0.0748
+  },
+  "日本語能力試験の勉強をしています。": {
+   "ruby_groups": 2,
+   "min_group_gap_em": 1.3,
+   "group_gaps_em": [
+    1.3
+   ],
+   "ruby_to_base_gap_em": 0.0245,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.1141
+  },
+  "国際交流基金は東京都新宿区にあります。": {
+   "ruby_groups": 5,
+   "min_group_gap_em": -0.146,
+   "group_gaps_em": [
+    1.127,
+    -0.116,
+    -0.146,
+    0.3668
+   ],
+   "ruby_to_base_gap_em": 0.017,
+   "max_overhang_left_em": -0.0865,
+   "worst_spacing_deviation": 0.0759
+  }
+ },
+ "Phase 2": {
+  "東京": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0682,
+   "max_overhang_left_em": -0.084,
+   "worst_spacing_deviation": 0.0513
+  },
+  "京都": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.064,
+   "max_overhang_left_em": -0.127,
+   "worst_spacing_deviation": 0.0268
+  },
+  "今日": {
+   "ruby_groups": 0,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": null,
+   "max_overhang_left_em": null,
+   "worst_spacing_deviation": 0.0
+  },
+  "日本語": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.079,
+   "max_overhang_left_em": -0.1575,
+   "worst_spacing_deviation": 0.118
+  },
+  "学校": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0675,
+   "max_overhang_left_em": -0.079,
+   "worst_spacing_deviation": 0.0759
+  },
+  "図書館": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.063,
+   "max_overhang_left_em": -0.1455,
+   "worst_spacing_deviation": 0.0742
+  },
+  "日本語能力試験": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.063,
+   "max_overhang_left_em": -0.1075,
+   "worst_spacing_deviation": 0.1025
+  },
+  "国際交流基金": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.055,
+   "max_overhang_left_em": -0.132,
+   "worst_spacing_deviation": 0.1181
+  },
+  "東京都新宿区": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.064,
+   "max_overhang_left_em": -0.1455,
+   "worst_spacing_deviation": 0.0979
+  },
+  "東京大学": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.059,
+   "max_overhang_left_em": -0.0955,
+   "worst_spacing_deviation": 0.1825
+  },
+  "日本語学校": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0675,
+   "max_overhang_left_em": -0.1075,
+   "worst_spacing_deviation": 0.1181
+  },
+  "京都大学病院": {
+   "ruby_groups": 2,
+   "min_group_gap_em": 0.2163,
+   "group_gaps_em": [
+    0.2163
+   ],
+   "ruby_to_base_gap_em": 0.059,
+   "max_overhang_left_em": -0.127,
+   "worst_spacing_deviation": 0.158
+  },
+  "国際交流基金東京": {
+   "ruby_groups": 2,
+   "min_group_gap_em": 0.1575,
+   "group_gaps_em": [
+    0.1575
+   ],
+   "ruby_to_base_gap_em": 0.055,
+   "max_overhang_left_em": -0.132,
+   "worst_spacing_deviation": 0.1181
+  },
+  "行く": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.092,
+   "max_overhang_left_em": -0.3085,
+   "worst_spacing_deviation": 0.0
+  },
+  "行う": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0705,
+   "max_overhang_left_em": 0.203,
+   "worst_spacing_deviation": 0.077
+  },
+  "食べる": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.078,
+   "max_overhang_left_em": -0.299,
+   "worst_spacing_deviation": 0.0
+  },
+  "取り戻す": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.1215,
+   "max_overhang_left_em": -0.3455,
+   "worst_spacing_deviation": 0.5198
+  },
+  "承る": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.1269,
+   "max_overhang_left_em": 0.2403,
+   "worst_spacing_deviation": 0.1351
+  },
+  "富士山": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.068,
+   "max_overhang_left_em": -0.118,
+   "worst_spacing_deviation": 0.1508
+  },
+  "新幹線": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0705,
+   "max_overhang_left_em": -0.163,
+   "worst_spacing_deviation": 0.2026
+  },
+  "駅前": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0675,
+   "max_overhang_left_em": -0.1045,
+   "worst_spacing_deviation": 0.1054
+  },
+  "自転車": {
+   "ruby_groups": 1,
+   "min_group_gap_em": null,
+   "group_gaps_em": [],
+   "ruby_to_base_gap_em": 0.0565,
+   "max_overhang_left_em": -0.156,
+   "worst_spacing_deviation": 0.1592
+  },
+  "私は昨日東京へ行きました。": {
+   "ruby_groups": 3,
+   "min_group_gap_em": 0.277,
+   "group_gaps_em": [
+    0.277,
+    1.4003
+   ],
+   "ruby_to_base_gap_em": 0.0682,
+   "max_overhang_left_em": -2.177,
+   "worst_spacing_deviation": 0.0603
+  },
+  "日本語能力試験の勉強をしています。": {
+   "ruby_groups": 2,
+   "min_group_gap_em": 1.0907,
+   "group_gaps_em": [
+    1.0907
+   ],
+   "ruby_to_base_gap_em": 0.061,
+   "max_overhang_left_em": -0.1075,
+   "worst_spacing_deviation": 0.1025
+  },
+  "国際交流基金は東京都新宿区にあります。": {
+   "ruby_groups": 2,
+   "min_group_gap_em": 1.219,
+   "group_gaps_em": [
+    1.219
+   ],
+   "ruby_to_base_gap_em": 0.055,
+   "max_overhang_left_em": -0.132,
+   "worst_spacing_deviation": 0.1181
+  }
+ }
+}

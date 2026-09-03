@@ -121,7 +121,8 @@ def main() -> int:
     args = ap.parse_args()
 
     all_rules = rules_mod.load(args.rules)
-    ordered = sorted(all_rules, key=lambda r: (-r.pri, -len(r.seq), r.seq))
+    # longest first: the same order the compiler packs them in
+    ordered = sorted(all_rules, key=lambda r: (-len(r.seq), r.seq))
     print(f"[bench] {len(ordered)} rules available")
 
     results = []
@@ -137,6 +138,7 @@ def main() -> int:
         rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         info["peak_rss_mb"] = round(rss_after / (1024 * 1024), 1)
         info["rss_delta_mb"] = round((rss_after - rss_before) / (1024 * 1024), 1)
+        info["ms_lookups"] = info.get("multiple_subst_lookups")
         info.update(validate(path))
         info["shaping"] = shape_bench(path)
         info["label"] = label

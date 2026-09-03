@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>YomiFont typography comparison</title>
+<style>
+ :root { --gap: 14px; }
+ body { font-family: -apple-system, system-ui, sans-serif; margin: 22px; color:#111; }
+ h1 { font-size: 19px; margin: 0 0 4px; }
+ p.note { color:#555; font-size:13px; margin: 0 0 18px; max-width: 70ch; }
+ table { border-collapse: collapse; width: 100%; }
+ th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+      color:#666; padding: 6px 10px; border-bottom:1px solid #ddd; font-weight:600; }
+ td { padding: 2px 10px; vertical-align: middle; border-bottom:1px solid #f0f0f0; }
+ td.label { font-size:12px; color:#888; white-space:nowrap; width: 1%; }
+ .a { font-family:"YomiA"; }
+ .b { font-family:"YomiB"; }
+ .spec { font-size: 40px; line-height: 1.75; white-space: nowrap; }
+ .para { font-size: 26px; line-height: normal; max-width: 30em; white-space: normal;
+         background: repeating-linear-gradient(#fbfbfb 0 0); }
+ .rule { outline: 1px solid #e8e8e8; }
+</style>
+</head>
+<body>
+<h1>YomiFont typography — Phase 1 (left) vs Phase 2 (right)</h1>
+<p class="note">Both columns render the same Unicode text with no markup. Look for:
+group separation between adjacent words, even distribution when the reading is
+shorter than the base, ruby size consistency, the gap between ruby and base,
+and whether consecutive lines collide.</p>
+
+<table>
+<thead><tr><th style="width:1%"></th><th>Phase 1</th><th>Phase 2</th></tr></thead>
+<tbody id="rows"></tbody>
+</table>
+
+<script>
+const SPECIMENS = [
+  "東京", "京都", "今日", "日本語", "学校", "図書館",
+  "東京都新宿区", "日本語能力試験", "国際交流基金",
+  "行く", "行う", "食べる", "取り戻す", "承る",
+  "富士山", "任天堂", "新幹線", "駅前",
+];
+const PARAGRAPHS = [
+  "私は昨日東京へ行きました。",
+  "日本語能力試験の勉強をしています。",
+  "国際交流基金は東京都新宿区にあります。",
+  "彼女は先週から新しい仕事を始めたそうです。",
+];
+
+async function load(name, url) {
+  const ff = new FontFace(name, `url("${url}?cb=${Date.now()}")`);
+  await ff.load(); document.fonts.add(ff);
+}
+
+async function run() {
+  await load("YomiA", "/dist/phase1/YomiFont-Regular.ttf");
+  await load("YomiB", "/dist/YomiFont-Regular.ttf");
+  const rows = document.getElementById("rows");
+  const add = (label, text, cls) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="label">${label}</td>` +
+      `<td><div class="a ${cls}">${text}</div></td>` +
+      `<td><div class="b ${cls}">${text}</div></td>`;
+    rows.appendChild(tr);
+  };
+  for (const s of SPECIMENS) add("", s, "spec");
+  for (const p of PARAGRAPHS) add("paragraph", p, "para rule");
+  document.title = "typography ready";
+}
+run();
+</script>
+</body>
+</html>

@@ -20,7 +20,9 @@ from dataclasses import dataclass
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CTSHAPE = os.path.join(ROOT, "tools", "ctshape", "ctshape")
 
-RUBY_RE = re.compile(r"^r\.([0-9A-F]{4})\.t(m?)(\d+)$")
+# Phase 2 names are r.<cp>.<size%>.<slot>; Phase 1 used r.<cp>.t<slot>.
+# Both are accepted so the two can be compared in one run.
+RUBY_RE = re.compile(r"^r\.([0-9A-F]{4})\.(?:(\d{2})\.)?t?(m?)(\d+)$")
 
 
 @dataclass(frozen=True)
@@ -37,11 +39,17 @@ class ShapedGlyph:
         return chr(int(m.group(1), 16)) if m else None
 
     @property
+    def ruby_size(self) -> float | None:
+        m = RUBY_RE.match(self.name)
+        return int(m.group(2)) / 100 if m and m.group(2) else 0.5
+
+    @property
     def ruby_t(self) -> int | None:
+        """Placement slot, in QUANTUM units from the start of the word."""
         m = RUBY_RE.match(self.name)
         if not m:
             return None
-        return -int(m.group(3)) if m.group(2) else int(m.group(3))
+        return -int(m.group(4)) if m.group(3) else int(m.group(4))
 
 
 def shape_harfbuzz(font_path: str, text: str) -> list[ShapedGlyph]:
@@ -87,26 +95,30 @@ def shape_coretext(font_path: str, text: str) -> list[ShapedGlyph]:
 def ruby_runs(glyphs: list[ShapedGlyph]) -> list[str]:
     """Consecutive ruby glyphs collapsed into reading strings.
 
-    A run breaks when a non-ruby glyph appears or when t goes backwards, which
-    is what separates two ruby groups emitted from the same substitution
-    (取 -> と at t=1, then 戻 -> もど at t=8,10).
+    A run breaks on a non-ruby glyph, or when the gap between one kana's box
+    and the next exceeds GROUP_BREAK_GAP.  Phase 2 distributes ruby across its
+    base, so consecutive kana of ONE reading can sit up to a few hundred units
+    apart; a genuine group break (取 -> と, then 戻 -> もど) is a whole base
+    character or more.
     """
+    GROUP_BREAK_GAP = 600  # font units
     runs: list[str] = []
     cur: list[str] = []
-    last_t: int | None = None
+    prev_right: float | None = None
     for g in glyphs:
         ch = g.ruby_char
         if ch is None:
             if cur:
                 runs.append("".join(cur))
-                cur, last_t = [], None
+                cur, prev_right = [], None
             continue
-        t = g.ruby_t
-        if last_t is not None and t is not None and t - last_t > 2:
+        x = (g.ruby_t or 0) * 50
+        w = (g.ruby_size or 0.5) * 1000
+        if prev_right is not None and x - prev_right > GROUP_BREAK_GAP:
             runs.append("".join(cur))
             cur = []
         cur.append(ch)
-        last_t = t
+        prev_right = x + w
     if cur:
         runs.append("".join(cur))
     return runs

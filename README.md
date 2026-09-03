@@ -2,9 +2,9 @@
 
 **Automatic Japanese furigana at the font shaping layer.**
 
-YomiFont is an experimental Japanese font that compiles lexical and
-morphological reading rules into OpenType shaping tables to display automatic
-furigana without modifying the underlying text or requiring a runtime analyzer.
+YomiFont compiles lexical and morphological reading rules into OpenType shaping
+tables to display furigana without modifying the underlying text or requiring a
+runtime analyzer.
 
 Install the font, select it, and type ordinary Japanese:
 
@@ -14,99 +14,117 @@ Install the font, select it, and type ordinary Japanese:
 ```
 
 The characters in the document are still exactly `私は昨日東京へ行きました。`
-Copy, search, select and index all continue to operate on the original text —
-the furigana exists only as glyphs the shaping engine inserts.
+Copy, search, select and index continue to operate on the original text — the
+furigana exists only as glyphs the shaping engine inserts.
 
-No HTML `<ruby>`, no JavaScript, no browser extension, no MeCab at runtime,
-no preprocessing of the user's text.
+No HTML `<ruby>`, no JavaScript, no browser extension, no MeCab at runtime, no
+preprocessing of the user's text.
 
 ![YomiFont rendering a sentence](docs/images/sample.png)
 
 ---
 
-## Does it work?
+## What it is, precisely
 
-Yes, with measured caveats. Everything below is reproducible from this repo.
+> YomiFont displays furigana for lexical readings that can be safely determined
+> at the font shaping layer, and intentionally abstains when the reading is
+> ambiguous.
+
+It is not automatic reading of arbitrary Japanese. Roughly a fifth of the kanji
+tokens in ordinary prose get no ruby, on purpose, because nothing a shaping
+engine can see determines their reading.
 
 | | |
 |---|---|
-| Lexical rules compiled into one font | **317,410** |
-| Total glyphs | **9,275** |
-| Ruby glyphs (reusable, all words share them) | **3,262** for 81 kana |
-| Font size | **11.3 MB** (GSUB 9.2 MB) |
-| Shaping cost | **0.51 µs/char** |
-| OpenType Sanitizer (what Chrome/Firefox require) | **PASS** at every scale |
-| Kanji tokens that receive ruby | **99.97 %** |
-| …with the reading UniDic assigns in context | **92.4 %** |
+| **Precision** — of the readings it renders, how many are right | **99.94 %** |
+| **Wrong readings** in 20,000 held-out sentences | **31** |
+| Coverage — kanji tokens that receive ruby | 79.1 % |
+| Coverage under Blink's script segmentation | 48.9 % (precision 99.87 %) |
+| Safe lexical rules | 300,364 |
+| Total glyphs / ruby glyphs | 19,849 / 14,194 |
+| Font size | 11.2 MB (GSUB 8.8 MB) |
 | GPOS table | **none — the font has no GPOS at all** |
+| OpenType Sanitizer (what Chrome and Firefox require) | PASS |
 
-Reading accuracy is measured against UniDic over 20,000 Tatoeba sentences
-disjoint from anything used to build the rules. Of the 7.6 % that disagree,
-3.0 % are deliberate overrides, 2.9 % pick a different reading JMdict also
-attests, and **1.0 % are genuinely wrong**.
+Measured against UniDic over Tatoeba sentences disjoint from anything used to
+build the rules. [docs/safety.md](docs/safety.md) explains the policy and lists
+every remaining wrong reading.
 
-The goal is not to force a reading onto every kanji. Readings that depend on
-sentence meaning, and personal and place names, are out of reach of a font by
-construction — [docs/limitations.md](docs/limitations.md) separates those walls
-from the merely-unfinished engineering. `--abstain-margin` will emit no ruby
-rather than guess on genuine ties.
+## Precision over coverage
+
+A word gets ruby only when the lexical data determines its reading. The signal
+is **entry identity**, not frequency:
+
+```
+今日  きょう / こんにち   one JMdict entry   -> variant readings -> ruby
+市場  しじょう / いちば   two JMdict entries -> two words        -> no ruby
+人気  にんき / ひとけ     two entries        -> no ruby
+```
+
+Corpus frequency is never used to pick a reading. It can tell you which is more
+common; it cannot tell you the other is wrong.
+
+Abstention is enforced, not merely omitted: an ambiguous sequence gets a
+**block rule** that consumes it and emits nothing, so no shorter rule fires in
+its place.
+
+Proper nouns are included when their reading is determined — 東京, 富士山,
+任天堂 — because the criterion is determinism, not lexical category.
+
+## Typography
+
+![before and after](docs/images/before_after.png)
+
+Ruby is laid out, not just placed: 均等割り付け distribution when the reading is
+narrower than its base, tightened tracking before any size reduction, bounded
+overhang only as a last resort, and ruby outlines taken from a heavier weight of
+the variable base font to compensate for optical thinning at half size.
+
+Group separation is measured from glyph geometry and asserted in the test suite:
+
+| specimen | Phase 1 gap between ruby groups | now |
+|---|---|---|
+| 京都大学病院 | −0.068 em (overlapping) | +0.216 em |
+| 国際交流基金東京 | −0.123 em (overlapping) | +0.158 em |
+| 東京都新宿区 | −0.146 em (overlapping) | separated |
+
+Details and the conventions honoured (and not) in
+[docs/typography.md](docs/typography.md).
 
 ## Quick start
 
 ```bash
-uv venv --python 3.13 .venv
-uv pip install --python .venv/bin/python fonttools uharfbuzz pytest
-# optional, for the UniDic evaluation oracle and corpus priors
-uv pip install --python .venv/bin/python fugashi unidic-lite opentype-sanitizer
-
-make data          # fetch JMdict, Noto Sans JP, Tatoeba
+make venv          # virtualenv + dependencies
+make data          # fetch JMdict, JMnedict, Noto Sans JP, Tatoeba
 make font          # dist/YomiFont-Regular.ttf
-make test          # 194 shaping tests, HarfBuzz + CoreText
-make eval          # reading accuracy against UniDic
-make bench         # scaling benchmark, 1k -> 318k rules
+make test          # 214 shaping tests, HarfBuzz + CoreText
+make eval          # precision / coverage against UniDic
+make eval-blink    # same, modelling Blink script segmentation
+make visual        # typography contact sheet + metrics
+make bench         # scaling benchmark
 ```
-
-Two builds are produced:
-
-| file | rules | size | for |
-|---|---|---|---|
-| `dist/YomiFont-Regular.ttf` | 317,410 | 11.3 MB | desktop install |
-| `dist/YomiFont-Web-Regular.ttf` | 50,000 | 2.2 MB | web embedding |
 
 ## How it works
 
 ```
-JMdict ──► lexical IR ──► okurigana alignment ──► rules ──► GSUB ──► .ttf
-                              ▲                     ▲
-              UniDic corpus priors (optional)  conflict resolution
+JMdict (+JMnedict) ──► lexical IR ──► safety classifier ──► alignment
+                                              │
+                                              ▼
+                                  rules ──► GSUB ──► .ttf
 ```
 
 A word is recognised by a **ChainContextSubst** rule whose input is the whole
-word. It triggers one **MultipleSubst** that replaces the word's first glyph
-with *(the ruby kana for the whole word, then the first glyph again)*:
+word, triggering one **MultipleSubst** that replaces the word's first glyph with
+*(the ruby kana for the whole word, then the first glyph again)*. Ruby glyphs are
+zero-advance and carry their placement inside the outline, so the base text keeps
+its exact metrics and no GPOS is needed.
 
-```
-ccmp:  sub uni6771' lookup L uni4EAC' ;                      # 東京
-L:     sub uni6771 by r.3068.tm1 r.3046.t1 r.304D.t3
-                     r.3087.t5  r.3046.t7 uni6771 ;          # とうきょう + 東
-```
+A ruby glyph's identity is `(kana, size, x offset)` and never the word it
+appears in, which is what keeps 300,364 rules inside 19,849 glyphs instead of
+past the 65,535 limit.
 
-The ruby glyphs are **zero-advance** and carry their own horizontal placement
-inside the outline, so the base text keeps its exact metrics and **no GPOS is
-needed**. The `t` suffix is the glyph's horizontal slot in quarter-ems:
-
-```
-t = 4·group_start + 2·span − n_kana + 2·i
-```
-
-Because placement is a function of that one integer, the same ~40 positional
-variants of each kana serve every word in the lexicon. This is what keeps
-317,410 rules inside 9,275 glyphs instead of blowing past the 65,535 limit —
-one composite glyph per word would need 317,410 of them, 4.8x the limit.
-
-Read [docs/architecture.md](docs/architecture.md) for the full design and
-[docs/opentype-notes.md](docs/opentype-notes.md) for the OpenType details,
-including three failure modes that cost real debugging time.
+See [docs/architecture.md](docs/architecture.md) and
+[docs/opentype-notes.md](docs/opentype-notes.md).
 
 ## Compatibility
 
@@ -114,51 +132,40 @@ including three failure modes that cost real debugging time.
 |---|---|
 | HarfBuzz (CLI, uharfbuzz) | full |
 | CoreText (macOS native) | full |
-| Safari 26.5 / WebKit | full |
-| Chrome 151 / Blink | full — **only because of a specific mitigation** |
-| DirectWrite / Windows | not tested, see notes |
+| Safari 26.5 / WebKit | full — matches HarfBuzz on every probe case |
+| Chrome 151 / Blink | correct, but **half the coverage** |
+| Firefox, DirectWrite, Word, LibreOffice, Adobe | not tested |
 
-Blink itemises text into script runs before shaping, so **no GSUB rule can span
-a Han↔Kana boundary in Chrome**: `行った` is shaped as `行` + `った`, and the
-okurigana that disambiguates the reading is in a different run. Without a
-mitigation this costs 20 percentage points of accuracy. YomiFont handles it by
-deriving each single-kanji fallback rule from how that kanji is actually read
-when it stands alone between kana. Full measurements in
-[docs/compatibility.md](docs/compatibility.md).
+Blink itemises text into script runs before shaping, so no rule can span a
+Han↔Kana boundary: `行った` is shaped as `行` + `った` and the okurigana that
+identifies the verb is in a different run. YomiFont does not guess to make up
+the difference — it abstains, so Chrome gets 48.9 % coverage at 99.87 %
+precision. [docs/compatibility.md](docs/compatibility.md).
 
 ## Repository layout
 
 ```
-src/yomifont/       jmdict, kana, alignment, conjugation, rules,
-                    engine (reference matcher), rubyglyphs, gsub, build
-scripts/            pipeline.py, evaluate.py, build_priors.py
-tests/shaping/      194 shaping tests (HarfBuzz + CoreText)
+src/yomifont/       jmdict, jmnedict, lexicon, safety, alignment, conjugation,
+                    rules, engine, layout, rubyglyphs, gsub, build
+scripts/            pipeline.py, evaluate.py
+tests/shaping/      214 shaping tests (HarfBuzz + CoreText)
+tests/visual/       typography contact sheets and geometric metrics
 tests/integration/  browser harness and cross-engine comparison
 benchmarks/         scaling benchmark and results
 tools/ctshape/      a CoreText counterpart to hb-shape (Swift)
-docs/               architecture, opentype notes, compatibility, limitations
+docs/               safety, typography, architecture, opentype, compatibility,
+                    limitations, licensing, roadmap
 ```
 
 ## Licensing
 
-YomiFont's own code is MIT. The build products carry obligations from their
-sources:
-
-- **JMdict** — CC BY-SA 4.0, © Electronic Dictionary Research and Development
-  Group. Attribution is embedded in the font's `name` table and required in any
-  redistribution.
-- **Noto Sans JP** — SIL Open Font License 1.1. The Reserved Font Name rule is
-  why this project is called *YomiFont* and not *Noto* anything.
-- **UniDic / unidic-lite** — BSD/LGPL/GPL, build-time only; no UniDic data is
-  embedded in the font.
-- **Tatoeba** — CC BY 2.0 FR, build-time only.
-
-Details and the exact obligations are in [docs/licensing.md](docs/licensing.md).
+Code is MIT. The font is a derivative work of JMdict/JMnedict (CC BY-SA 4.0,
+EDRDG) and Noto Sans JP (SIL OFL 1.1) and must be redistributed under CC BY-SA
+4.0 while honouring the OFL. "Noto" is a Reserved Font Name, which is why this
+is called YomiFont. Full obligations in [docs/licensing.md](docs/licensing.md).
 
 ## Status
 
-This is a research prototype, not a finished typeface. It does not attempt
-perfect semantic disambiguation and will confidently put the wrong reading on
-words that need context a font cannot see. See
-[docs/limitations.md](docs/limitations.md) before using it for anything that
-matters.
+A research prototype. It will leave a fifth of the kanji in a page unannotated,
+and for a common noun that is also somebody's name it can still be wrong. See
+[docs/limitations.md](docs/limitations.md).

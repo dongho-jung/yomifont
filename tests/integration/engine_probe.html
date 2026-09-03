@@ -20,20 +20,22 @@ without reading glyph IDs.</p>
 <script>
 // (text, note).  Cases split by whether the rule crosses a Han/Kana boundary.
 const CASES = [
-  ["東京",        "all-Han lexical"],
-  ["日本語",      "all-Han longest match"],
-  ["日本",        "all-Han shorter"],
-  ["今日",        "all-Han jukujikun"],
-  ["銀行",        "all-Han"],
-  ["行った",      "Han+Kana: okurigana context"],
-  ["行きました",  "Han+Kana: okurigana context"],
-  ["分かりました","Han+Kana: okurigana context"],
-  ["食べる",      "Han+Kana: okurigana context"],
-  ["新しい",      "Han+Kana: okurigana context"],
-  ["取り戻す",    "Han+Kana: two ruby groups"],
-  ["行",          "isolated kanji"],
-  ["分",          "isolated kanji"],
-  ["食",          "isolated kanji"],
+  ["東京",            "all-Han lexical"],
+  ["日本語",          "all-Han longest match"],
+  ["日本",            "all-Han shorter"],
+  ["今日",            "all-Han jukujikun"],
+  ["学校",            "all-Han"],
+  ["図書館",          "distributed ruby"],
+  ["日本語能力試験",  "long single group"],
+  ["京都大学病院",    "adjacent groups"],
+  ["行く",            "Han+Kana: okurigana context"],
+  ["行う",            "Han+Kana: okurigana context"],
+  ["食べる",          "Han+Kana: okurigana context"],
+  ["取り戻す",        "Han+Kana: two ruby groups"],
+  ["書きました",      "inflected form"],
+  ["市場",            "ambiguous -> must be blank"],
+  ["人気",            "ambiguous -> must be blank"],
+  ["行った",          "ambiguous -> must be blank"],
 ];
 
 const SIZE = 100;           // px per em
@@ -94,16 +96,50 @@ function signature(text) {
 }
 
 async function run() {
-  const ff = new FontFace("YomiProbe", `url("/dist/YomiFont-Regular.ttf?cb=${Date.now()}")`);
-  await ff.load();
-  document.fonts.add(ff);
-  await document.fonts.ready;
+  const diag = {};
+  const FONT_URL = new URLSearchParams(location.search).get("font")
+                   || "/dist/YomiFont-Regular.ttf";
+  const ff = new FontFace("YomiProbe", `url("${FONT_URL}?cb=${Date.now()}")`);
+  try {
+    await ff.load();
+    document.fonts.add(ff);
+    await document.fonts.ready;
+    diag.loaded = true;
+  } catch (e) {
+    diag.loaded = false;
+    diag.error = String(e && e.message || e);
+  }
+  diag.check = document.fonts.check('100px YomiProbe');
+  // does the font actually get used? full-width kanji must measure 1 em
+  const c0 = document.createElement("canvas").getContext("2d");
+  c0.font = "100px YomiProbe";
+  diag.width_kanji = c0.measureText("東").width;
+  c0.font = "100px sans-serif";
+  diag.width_fallback = c0.measureText("東").width;
+  diag.font_url = FONT_URL;
+  // total ink over the whole canvas, to tell "no ruby" from "nothing drawn"
+  {
+    const c = document.createElement("canvas");
+    c.width = 800; c.height = 400;
+    const cx = c.getContext("2d", { willReadFrequently: true });
+    cx.fillStyle = "#fff"; cx.fillRect(0,0,800,400);
+    cx.fillStyle = "#000"; cx.font = "100px YomiProbe"; cx.textBaseline = "alphabetic";
+    cx.fillText("東京", 200, 300);
+    const d2 = cx.getImageData(0,0,800,400).data;
+    let ink = 0, above = 0;
+    for (let y=0;y<400;y++) for (let x=0;x<800;x++) {
+      if (d2[(y*800+x)*4] < 128) { ink++; if (y < 300-87) above++; }
+    }
+    diag.total_ink = ink; diag.ink_above_embox = above;
+  }
 
   const results = {};
   for (const [text, note] of CASES) results[text] = { note, ...signature(text) };
 
   const payload = {
-    engine: (navigator.userAgent.match(/(Firefox|Edg|Chrome|Version)\/[\d.]+/g) || ["unknown"]).join("_")
+    diag,
+    engine: ((navigator.userAgent.match(/(Firefox|Edg|Chrome|Version)\/[\d.]+/g) || ["unknown"]).join("_")
+             + "_" + FONT_URL.split("/").slice(-2).join("_"))
              .replace(/[^A-Za-z0-9._-]/g, "_"),
     ua: navigator.userAgent,
     results,

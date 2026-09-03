@@ -61,14 +61,11 @@ not `戻`. Whether an implementation is *supposed* to renumber is exactly the
 kind of thing engines disagree about, so relying on either behaviour is a bug.
 
 **The fix.** Emit *all* of a word's ruby from a single record at sequence index
-0, folding each group's position into the ruby glyph's `t` value:
-
-```
-t = 4·group_start + 2·span − n_kana + 2·i
-```
+0, folding each group's position into the ruby glyph's identity — the offset is
+absolute from the start of the matched word, so 取 gets と at x=250 and 戻 gets
+もど at x=2000 and 2500 from the same substitution.
 
 Every rule now has exactly one lookup record, and the ambiguity cannot arise.
-This also removed the need to reason about record ordering at all.
 
 ---
 
@@ -94,16 +91,20 @@ HarfBuzz produces for each maximal Han run shaped in isolation.
 
 CoreText does *not* do this; Safari and native macOS controls match HarfBuzz.
 
-**The mitigation.** The single-character rule for a kanji is set to the reading
-that kanji actually takes when it stands alone between kana, counted over the
-training corpus with the same okurigana alignment the compiler uses
-(`行 → い` 3868 times vs `行 → ぎょう` 25). The reading is never invented — it
-must already be one YomiFont assigns to that character elsewhere. This recovers
-Blink from 71.4 % to 91.3 % correct tokens at a cost of 0.5 points in
-non-segmenting engines. Numbers in [compatibility.md](compatibility.md).
+**Phase 1's mitigation, and why it was removed.** Phase 1 set each
+single-character rule to the reading that kanji takes when it stands alone
+between kana, counted over a corpus (`行 → い` 3868 times vs `行 → ぎょう` 25).
+That recovered Blink from 71.4 % to 91.3 % correct tokens — but it was a guess,
+and under the Phase 2 policy a guess is not allowed to reach the page. Single
+character rules are gone entirely, and an all-Han rule that is also the stem of
+an inflecting verb (微笑 = the noun びしょう and also 微笑む's stem ほほえ) is
+dropped, because under segmentation nothing separates them. Blink now gets half
+the coverage at the same precision. Numbers in
+[compatibility.md](compatibility.md).
 
-**What this does not fix.** In Blink, `行う` and `行く` are indistinguishable;
-both get い. Okurigana-based disambiguation genuinely does not exist there.
+**What nothing fixes.** In Blink, `行う` and `行く` are indistinguishable; both
+are just `行`. Okurigana-based disambiguation genuinely does not exist there, so
+YomiFont abstains rather than picking one.
 
 ---
 
@@ -118,8 +119,8 @@ flags not every rasterizer honours identically.
 YomiFont splits the transform across two levels so neither level is ambiguous:
 
 ```
-rk.304D       composite(uni304D, scale 0.5, offset 0/0)   # scale, no offset
-r.304D.t3     composite(rk.304D, scale 1.0, offset 750/900)  # offset, no scale
+rk.304D.50      composite(source き, scale 0.5, offset 0/0)      # scale, no offset
+r.304D.50.15    composite(rk.304D.50, scale 1.0, offset 750/940) # offset, no scale
 ```
 
 With a zero offset at the scaling level and an identity scale at the offsetting
@@ -131,14 +132,41 @@ level, both conventions produce the same result. Cost is ~14 bytes per variant.
 
 | limit | value | hit? |
 |---|---|---|
-| glyph count | 65,535 | no — 9,275 used |
+| glyph count | 65,535 | no — 19,849 used |
 | Lookup subtable offsets | `Offset16` from Lookup start | avoided: subtables capped at 48 kB and packed by first glyph |
-| LookupList offsets | `Offset16` from LookupList start | no — 1,446 lookups, all small |
-| ChainContextSubst fmt 1 internal offsets | `Offset16` from subtable start | avoided by the 48 kB budget → 141 subtables |
+| **LookupList offsets** | `Offset16` from LookupList start | **yes — this is the wall** |
+| ChainContextSubst fmt 1 internal offsets | `Offset16` from subtable start | avoided by the 48 kB budget → 134 subtables |
 | HarfBuzz repacker | fails somewhere between a **8.7 MB and 9.2 MB** GSUB | **yes** |
 
-The repacker limit is the only hard wall found. fontTools tries HarfBuzz's
-`hb.repack` first and falls back to its own pure-Python overflow resolution:
+### The LookupList ceiling is the real limit, and it is a lookup count
+
+Adding JMnedict takes the rule set to 738,030 rules and the build stops:
+
+> GSUB LookupList offset overflowed and all lookups are already Extension
+> lookups, so the overflow can't be resolved by promotion; reduce the number of
+> lookups.
+
+Extension lookups solve *subtable* offsets, not the `LookupList` array itself,
+so there is no promotion left to do. The count is forced by the architecture: a
+MultipleSubst subtable is a map keyed by glyph and therefore holds one output
+per glyph, so the number of lookups needed equals
+
+    max over first glyphs of (number of distinct ruby outputs)
+
+| build | rules | MultipleSubst lookups | compiles |
+|---|---|---|---|
+| core (JMdict) | 300,364 | 1,375 | yes |
+| + JMnedict | 738,030 | **8,547** | no |
+
+The practical ceiling is around 3,000–3,600 small lookups. Note that this is not
+a rule-count limit — it is entirely about how many *different readings share a
+first character*, which is why 300k JMdict rules fit comfortably and 738k
+name-heavy rules do not.
+
+### The repacker limit is softer
+
+fontTools tries HarfBuzz's `hb.repack` first and falls back to its own
+pure-Python overflow resolution:
 
 | rules | GSUB | repacker | save time |
 |---|---|---|---|
@@ -147,8 +175,8 @@ The repacker limit is the only hard wall found. fontTools tries HarfBuzz's
 | 318,538 | 9.2 MB | **fails → fallback** | 83.8 s |
 
 The fallback still produces a font that passes OpenType Sanitizer and shapes
-identically; it is 4.5× slower to write. This bounds the practical single-font
-rule set at roughly 300k rules before build time degrades sharply.
+identically; it is 4.5× slower to write. Unlike the LookupList ceiling this is
+not a wall, just a cliff in build time at roughly 300k rules.
 
 ---
 
@@ -180,7 +208,15 @@ in 日本語 rather than re-entering at 本.
 
 **No GPOS.** Baking placement into outlines removes an entire table an engine
 could handle differently, and removes the question of whether a positioning
-feature is enabled. The cost is ~3,262 composite glyphs, about 70 kB.
+feature is enabled. The cost is 14,194 composite glyphs, about 200 kB of `glyf`
+— higher than Phase 1's 3,262 because Phase 2 places ruby on a 1/20-em grid at
+three sizes instead of a quarter-em grid at one.
+
+**A rule that substitutes nothing.** Abstention needs more than omitting a rule:
+if 難しい has no rule, the shorter 難 rule matches it. A ChainContextSubst rule
+whose nested MultipleSubst maps the first glyph to a one-element sequence
+(itself) consumes the whole match and emits no ruby. HarfBuzz, CoreText and OTS
+all accept a `glyphCount` of 1.
 
 ---
 

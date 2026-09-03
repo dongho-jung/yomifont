@@ -24,6 +24,7 @@ from typing import Iterator
 from xml.etree import ElementTree as ET
 
 from .kana import is_kana, is_kanji, normalize_reading, strip_non_reading
+from .lexicon import LexEntry, load, save  # noqa: F401  (re-exported)
 
 # ke_pri / re_pri values, mapped to a coarse frequency score.  Lower news1/ichi1
 # ranks mean more common.  nfXX are frequency buckets from a newspaper corpus
@@ -49,23 +50,6 @@ ENTITY_RE = re.compile(rb'<!ENTITY\s+([A-Za-z0-9_-]+)\s+"([^"]*)">')
 # 今日的.  In running text きょう is what a reader wants.
 FIRST_READING_BONUS = 400
 READING_RANK_STEP = 200
-
-
-@dataclass(slots=True)
-class LexEntry:
-    surface: str
-    reading: str
-    pri: int
-    pos: tuple[str, ...]
-    common: bool
-    flags: tuple[str, ...] = ()
-
-    def as_row(self) -> list:
-        return [self.surface, self.reading, self.pri, list(self.pos), self.common, list(self.flags)]
-
-    @staticmethod
-    def from_row(r: list) -> "LexEntry":
-        return LexEntry(r[0], r[1], r[2], tuple(r[3]), r[4], tuple(r[5]))
 
 
 def _pri_score(pri_tags: list[str]) -> tuple[int, bool]:
@@ -131,13 +115,22 @@ def parse(path: str, verbose: bool = True) -> list[LexEntry]:
         if not kebs:
             continue  # kana-only entry: nothing to put ruby on
 
-        # sense-level POS applies to the whole entry for our purposes
+        seq = int(entry.findtext("ent_seq") or 0)
+
+        # POS is unioned over senses, but `misc` must NOT be: it is a
+        # SENSE-level marker.  Unioning it killed 僕/ぼく (one archaic sense
+        # among several), 難しい, 通る, 少女, 大丈夫, 国 and 子, which then
+        # lost their readings to obscure competitors.  An entry counts as dead
+        # only when EVERY sense is marked dead, so we keep the intersection.
         pos: set[str] = set()
-        for s in entry.findall("sense"):
-            for p in s.findall("pos"):
+        sense_miscs: list[set[str]] = []
+        for sense in entry.findall("sense"):
+            for p in sense.findall("pos"):
                 if p.text:
                     pos.add(code(p.text))
+            sense_miscs.append({code(m.text) for m in sense.findall("misc") if m.text})
         pos_t = tuple(sorted(pos))
+        misc_t = tuple(sorted(set.intersection(*sense_miscs))) if sense_miscs else ()
 
         for rank, r in enumerate(entry.findall("r_ele")):
             reb = r.findtext("reb") or ""
@@ -172,6 +165,10 @@ def parse(path: str, verbose: bool = True) -> list[LexEntry]:
                         pos=pos_t,
                         common=k_common or r_common,
                         flags=flags,
+                        seq=seq,
+                        rank=rank,
+                        misc=misc_t,
+                        source="jmdict",
                     )
                 )
     if verbose:
@@ -180,37 +177,19 @@ def parse(path: str, verbose: bool = True) -> list[LexEntry]:
 
 
 def dedupe(entries: list[LexEntry]) -> list[LexEntry]:
-    """Collapse duplicates, keeping the highest priority for each pair."""
-    best: dict[tuple[str, str], LexEntry] = {}
+    """Collapse duplicates within one entry, keeping the best rank.
+
+    Duplicates ACROSS entries are deliberately preserved: entry identity is
+    what the safety classifier uses to tell 今日 (one entry, two readings)
+    apart from 市場 (two entries, two readings).
+    """
+    best: dict[tuple[int, str, str], LexEntry] = {}
     for e in entries:
-        k = (e.surface, e.reading)
+        k = (e.seq, e.surface, e.reading)
         prev = best.get(k)
-        if prev is None or e.pri > prev.pri:
-            if prev is not None:
-                e = LexEntry(e.surface, e.reading, max(e.pri, prev.pri),
-                             tuple(sorted(set(e.pos) | set(prev.pos))),
-                             e.common or prev.common, e.flags)
+        if prev is None or e.rank < prev.rank:
             best[k] = e
-        elif prev is not None:
-            best[k] = LexEntry(prev.surface, prev.reading, prev.pri,
-                               tuple(sorted(set(prev.pos) | set(e.pos))),
-                               prev.common or e.common, prev.flags)
     return list(best.values())
-
-
-def save(entries: list[LexEntry], path: str) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        for e in entries:
-            fh.write(json.dumps(e.as_row(), ensure_ascii=False, separators=(",", ":")) + "\n")
-
-
-def load(path: str) -> list[LexEntry]:
-    out = []
-    with open(path, encoding="utf-8") as fh:
-        for line in fh:
-            out.append(LexEntry.from_row(json.loads(line)))
-    return out
 
 
 if __name__ == "__main__":

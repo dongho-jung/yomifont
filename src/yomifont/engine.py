@@ -34,7 +34,7 @@ class RuleIndex:
         for r in rules:
             buckets.setdefault(r.seq[0], []).append(r)
         for v in buckets.values():
-            v.sort(key=lambda r: (-len(r.seq), -r.pri, r.seq))
+            v.sort(key=lambda r: (-len(r.seq), r.seq))
         self.buckets = buckets
 
     def __len__(self) -> int:

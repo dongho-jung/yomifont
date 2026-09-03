@@ -9,31 +9,31 @@ from fontTools import subset
 from fontTools.ttLib import TTFont, newTable
 
 from . import gsub as gsub_mod
-from .rubyglyphs import (EM, RUBY_SCALE, add_blank_glyph, add_ruby_glyphs,
-                         ruby_t, variant_name)
+from .layout import DEFAULT_POLICY, layout_word
+from .rubyglyphs import RUBY_Y, add_blank_glyph, add_ruby_glyphs, variant_name
 from .rules import Rule
 
-# Vertical metrics.  Kanji ink in Noto Sans JP tops out around y=843; ruby at
-# 0.5 scale is ~420 tall, so a ruby baseline of 900 clears the kanji by ~35
-# units and reaches ~1320.  Ascent must cover that or engines clip the ruby.
-RUBY_Y = 900
-ASCENT = 1330
+# Vertical metrics.  Ruby sits at RUBY_Y (940); the tallest ruby glyph in the
+# inventory (ざ at 0.5 em, dakuten included) reaches y=1373, so the ascent has
+# to clear that or engines clip it.  1400 leaves 27 units of headroom and gives
+# a 1.69 em default line box, which is inside the normal range for
+# ruby-bearing Japanese text and was verified not to overlap between lines.
+ASCENT = 1400
 DESCENT = -288
 
 DEFAULT_BASE = "data/raw/NotoSansJP-Regular.ttf"
+DEFAULT_RUBY_SOURCE = "data/raw/NotoSansJP-w500.ttf"
 
 
-def _needed_chars(rules: list[Rule]) -> tuple[set[str], set[tuple[str, int]]]:
-    """Characters needed from the base font, and (kana, t) ruby variants."""
+def _needed_chars(rules: list[Rule], policy: str = DEFAULT_POLICY):
+    """Characters needed from the base font, and (kana, size, x) ruby variants."""
     base_chars: set[str] = set()
-    ruby: set[tuple[str, int]] = set()
+    ruby: set[tuple[str, float, int]] = set()
     for r in rules:
         base_chars.update(r.seq)
-        for start, span, reading in r.groups:
-            n = len(reading)
-            for i, ch in enumerate(reading):
-                base_chars.add(ch)  # the ruby glyph is derived from the kana
-                ruby.add((ch, ruby_t(start, span, n, i)))
+        for p in layout_word(r.groups, policy):
+            base_chars.add(p.kana)   # the ruby glyph is derived from the kana
+            ruby.add((p.kana, p.size, p.x))
     return base_chars, ruby
 
 
@@ -90,19 +90,19 @@ def build_font(
     verbose: bool = True,
     keep_all_glyphs: bool = False,
     keep_glyph_names: bool = True,
+    policy: str = DEFAULT_POLICY,
+    ruby_source: str = DEFAULT_RUBY_SOURCE,
 ) -> dict:
     t0 = time.time()
-    base_chars, ruby_needed = _needed_chars(rules)
+    base_chars, ruby_needed = _needed_chars(rules, policy)
     font = make_base_font(base_path, base_chars, keep_all=keep_all_glyphs)
     cmap = font.getBestCmap()
     vert_map = extract_vert_mapping(font)
     t_subset = time.time()
 
     # ---- ruby inventory -------------------------------------------------
-    ruby_by_kana: dict[str, set[int]] = defaultdict(set)
-    for ch, t in ruby_needed:
-        ruby_by_kana[ch].add(t)
-    new_glyphs = add_ruby_glyphs(font, ruby_by_kana, ruby_y=RUBY_Y, scale=RUBY_SCALE)
+    new_glyphs = add_ruby_glyphs(font, ruby_needed, ruby_y=RUBY_Y,
+                                source_path=ruby_source)
     blank = add_blank_glyph(font)
     t_ruby = time.time()
 
@@ -118,19 +118,18 @@ def build_font(
             continue
         out: list[str] = []
         ok = True
-        for start, span, reading in r.groups:
-            n = len(reading)
-            for i, ch in enumerate(reading):
-                vn = variant_name(ch, ruby_t(start, span, n, i))
-                if vn not in font["glyf"].glyphs:
-                    ok = False
-                    break
-                out.append(vn)
-            if not ok:
+        for p in layout_word(r.groups, policy):
+            vn = variant_name(p.kana, p.size, p.x)
+            if vn not in font["glyf"].glyphs:
+                ok = False
                 break
+            out.append(vn)
         if not ok:
             dropped += 1
             continue
+        # A rule with no ruby is a BLOCK: it consumes the sequence and emits
+        # only the base glyph, which is what stops a shorter rule from firing
+        # on an ambiguous word.
         out.append(seq[0])
         prepared.append((seq[0], seq, tuple(out), len(r.seq)))
         ms_pairs.append((seq[0], tuple(out)))
@@ -237,10 +236,9 @@ def build_font(
         "rules_dropped": dropped,
         "glyphs": font["maxp"].numGlyphs,
         "ruby_glyphs": len(new_glyphs),
-        "ruby_kana": len(ruby_by_kana),
-        "ruby_variants_per_kana": round(
-            (len(new_glyphs) - len(ruby_by_kana)) / max(1, len(ruby_by_kana)), 1
-        ),
+        "ruby_kana": len({k for k, _, _ in ruby_needed}),
+        "ruby_sizes": sorted({s for _, s, _ in ruby_needed}),
+        "block_rules": sum(1 for r in rules if not r.groups),
         "font_bytes": size,
         "gsub_bytes": table_sizes.get("GSUB", 0),
         "glyf_bytes": table_sizes.get("glyf", 0),
@@ -256,7 +254,8 @@ def build_font(
     if verbose:
         print(f"[build] {out_path}")
         for k in ("rules_in", "rules_compiled", "rules_dropped", "glyphs",
-                  "ruby_glyphs", "ruby_kana", "chain_rules", "chain_subtables",
+                  "ruby_glyphs", "ruby_kana", "ruby_sizes", "block_rules",
+                  "chain_rules", "chain_subtables",
                   "chain_first_glyphs", "multiple_subst_lookups",
                   "multiple_subst_mappings"):
             print(f"         {k:26s} {info[k]}")

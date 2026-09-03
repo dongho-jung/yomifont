@@ -23,7 +23,7 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from corpus import NO_RUBY, POC, SENTENCES  # noqa: E402
+from corpus import ABSTAIN, NO_RUBY, POC, SENTENCES  # noqa: E402
 from shaper import (base_text, ruby_runs, shape_coretext,  # noqa: E402
                     shape_harfbuzz, total_advance)
 
@@ -47,14 +47,14 @@ def _plain_glyph_names(text: str) -> list[str]:
 # text integrity: the whole point of doing this in the font
 
 
-@pytest.mark.parametrize("text,_expected", POC + SENTENCES)
+@pytest.mark.parametrize("text,_expected", POC + SENTENCES + ABSTAIN)
 def test_base_glyphs_unchanged(text, _expected):
     """Ruby insertion must not disturb the base glyph run or its advances."""
     glyphs = shape_harfbuzz(FONT, text)
     assert [g.name for g in base_text(glyphs)] == _plain_glyph_names(text)
 
 
-@pytest.mark.parametrize("text,_expected", POC + SENTENCES)
+@pytest.mark.parametrize("text,_expected", POC + SENTENCES + ABSTAIN)
 def test_ruby_is_zero_advance(text, _expected):
     glyphs = shape_harfbuzz(FONT, text)
     for g in glyphs:
@@ -62,7 +62,7 @@ def test_ruby_is_zero_advance(text, _expected):
             assert g.advance == 0, f"ruby glyph {g.name} has advance {g.advance}"
 
 
-@pytest.mark.parametrize("text,_expected", POC + SENTENCES)
+@pytest.mark.parametrize("text,_expected", POC + SENTENCES + ABSTAIN)
 def test_line_width_matches_plain_text(text, _expected):
     """Ruby must not change how much horizontal space the text occupies."""
     glyphs = shape_harfbuzz(FONT, text)
@@ -71,7 +71,7 @@ def test_line_width_matches_plain_text(text, _expected):
     assert len(base_text(glyphs)) == n_full
 
 
-@pytest.mark.parametrize("text,_expected", POC + SENTENCES)
+@pytest.mark.parametrize("text,_expected", POC + SENTENCES + ABSTAIN)
 def test_clusters_cover_source(text, _expected):
     """Every glyph maps back to a character index, so selection/copy still work."""
     glyphs = shape_harfbuzz(FONT, text)
@@ -88,13 +88,21 @@ def test_clusters_cover_source(text, _expected):
 @pytest.mark.parametrize("text,expected", POC)
 def test_poc_readings(text, expected):
     runs = ruby_runs(shape_harfbuzz(FONT, text))
-    assert runs == [r for _, r in expected], f"{text}: got {runs}"
+    assert runs == expected, f"{text}: got {runs}"
 
 
 @pytest.mark.parametrize("text,expected", SENTENCES)
 def test_sentence_readings(text, expected):
     runs = ruby_runs(shape_harfbuzz(FONT, text))
-    assert runs == [r for _, r in expected], f"{text}: got {runs}"
+    assert runs == expected, f"{text}: got {runs}"
+
+
+@pytest.mark.parametrize("text,why", ABSTAIN)
+def test_abstains_on_ambiguous(text, why):
+    """Precision-first: an undetermined reading must render nothing at all."""
+    glyphs = shape_harfbuzz(FONT, text)
+    ruby = [g.name for g in glyphs if g.ruby_char is not None]
+    assert ruby == [], f"{text} ({why}) should have no ruby, got {ruby}"
 
 
 @pytest.mark.parametrize("text", NO_RUBY)
@@ -116,19 +124,52 @@ def test_okurigana_context_changes_reading():
 
 
 def test_ruby_glyphs_are_reused_not_per_word():
-    """The reusable-ruby claim, asserted mechanically.
-
-    き appears in きょう (今日) and in きょうと (京都) at different slots; the
-    same kana must resolve to a bounded set of glyphs, not a per-word one.
-    """
+    """The reusable-ruby claim, asserted mechanically."""
     names = set()
     for text in ["今日", "京都", "東京", "銀行", "教室", "急行"]:
         for g in shape_harfbuzz(FONT, text):
             if g.ruby_char == "き":
                 names.add(g.name)
     assert names, "expected き ruby glyphs"
-    # every one is a positional variant of the same base kana
-    assert all(n.startswith("r.304D.t") for n in names)
+    assert all(n.startswith("r.304D.") for n in names)
+
+
+def test_ruby_groups_do_not_collide():
+    """Adjacent ruby groups must stay visually separate.
+
+    This is the Phase 1 defect: 京都大学病院 ran its three readings together
+    with -0.068 em between groups.
+    """
+    from fontTools.pens.boundsPen import BoundsPen
+    from fontTools.ttLib import TTFont
+
+    font = TTFont(FONT)
+    gs = font.getGlyphSet()
+    for text in ["京都大学病院", "国際交流基金東京", "日本語学校",
+                 "私は昨日東京へ行きました。"]:
+        pen, groups, cur = 0, [], []
+        for g in shape_harfbuzz(FONT, text):
+            bp = BoundsPen(gs)
+            gs[g.name].draw(bp)
+            if g.ruby_char is not None:
+                if bp.bounds:
+                    cur.append((pen + bp.bounds[0], pen + bp.bounds[2]))
+            elif cur:
+                groups.append(cur)
+                cur = []
+            pen += g.advance
+        if cur:
+            groups.append(cur)
+        spans = [(min(a for a, _ in g), max(b for _, b in g)) for g in groups]
+        for i in range(len(spans) - 1):
+            gap = spans[i + 1][0] - spans[i][1]
+            assert gap > 0, f"{text}: ruby groups {i} and {i+1} overlap by {-gap}"
+
+
+def test_no_gpos_table():
+    from fontTools.ttLib import TTFont
+
+    assert "GPOS" not in TTFont(FONT, lazy=True)
 
 
 # --------------------------------------------------------------------------
@@ -136,7 +177,7 @@ def test_ruby_glyphs_are_reused_not_per_word():
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="CoreText is macOS only")
-@pytest.mark.parametrize("text,_expected", POC + SENTENCES)
+@pytest.mark.parametrize("text,_expected", POC + SENTENCES + ABSTAIN)
 def test_coretext_matches_harfbuzz(text, _expected):
     hb = shape_harfbuzz(FONT, text)
     ct = shape_coretext(FONT, text)

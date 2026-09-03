@@ -1,25 +1,33 @@
 # Architecture
 
 ```
-JMdict_e.gz
-    │  jmdict.py        parse, drop everything that cannot affect a reading
+JMdict_e.gz  (+ JMnedict.xml.gz)
+    │  jmdict.py / jmnedict.py   parse; keep only what can affect a reading
     ▼
-lexical IR            (surface, reading, priority, POS, flags)   217,489 pairs
-    │  alignment.py     okurigana alignment -> ruby groups        99.95 % align
+lexical IR            (surface, reading, ENTRY ID, rank, pos, misc, source)
+    │  safety.py        safe-reading classifier            98.8 % of surfaces safe
+    │  alignment.py     okurigana alignment -> ruby groups
     │  conjugation.py   invariant stems + ending sets
-    │  rules.py         conflict resolution, priority, overrides
+    │  rules.py         resolution, blocking, abstention
     ▼
-rule set              (seq, groups, priority)                    318,808 rules
-    │  rubyglyphs.py    reusable positional ruby glyph inventory   3,262 glyphs
+rule set              (seq, groups, safety, origin, src)          300,364 rules
+    │  layout.py        JLREQ-style ruby placement -> (kana, size, x)
+    │  rubyglyphs.py    reusable ruby inventory              14,194 glyphs
     │  gsub.py          ChainContextSubst + MultipleSubst packing
     │  build.py         subset base font, metrics, naming
     ▼
-YomiFont-Regular.ttf   11.3 MB, 9,275 glyphs, no GPOS
+YomiFont-Regular.ttf   11.2 MB, 19,849 glyphs, no GPOS
 ```
 
-Everything in this pipeline is ordinary deterministic code. The only
-hand-authored data is `data/overrides.tsv` — 14 lines, each with a stated
-reason.
+Everything in this pipeline is ordinary deterministic code. There is no
+hand-authored word list at all — Phase 1's override table was deleted along with
+the frequency priors, because under the Phase 2 policy nothing picks between
+competing readings.
+
+The load-bearing addition since Phase 1 is **entry identity**: the IR carries
+the source dictionary's `ent_seq`, which is what separates variant readings of
+one lexeme (今日 = きょう / こんにち) from two different words sharing a spelling
+(市場 = しじょう / いちば). See [safety.md](safety.md).
 
 ---
 
@@ -39,9 +47,12 @@ Two parsing details that materially changed results:
 - **Reading prominence.** JMdict lists an entry's readings in order of
   prominence, and that order is a better default signal than `re_pri`.
   今日 has きょう first with only `ichi1`, while こんにち carries
-  `ichi1 + news1 + nf02` because the newspaper corpus is full of 今日は and
-  formal 今日的. Reading rank is weighted at 400/200-per-rank, above any
-  priority-tag total.
+  `ichi1 + news1 + nf02`. Phase 2 uses that order to pick *within* an entry;
+  it never uses it to pick *between* entries.
+- **`misc` is a SENSE-level field.** Unioning it across an entry's senses marks
+  僕/ぼく dead because one of its senses is archaic, and hands 僕 to しもべ.
+  Same for 難しい, 通る, 少女, 大丈夫, 国 and 子. Keeping the intersection —
+  dead only when every sense is dead — moved precision from 93.7 % to 96.4 %.
 
 ## 2. Okurigana alignment
 
@@ -63,7 +74,7 @@ shortest first, resolves the rest.
 今日 into 今→きょ 日→う would be a fabrication; the reading belongs to the
 lexical unit. This is group ruby (グループルビ) and is typographically standard.
 
-99.95 % of the lexicon aligns. The 109 failures are genuinely irregular
+99.5 % of the lexicon aligns. The failures are genuinely irregular
 colloquial spellings (`こう言う / こーゆー`, `詰らない / つまらねー`) and are
 rejected rather than mis-aligned.
 
@@ -83,8 +94,8 @@ inflection**, and keys rules on the invariant stem plus one following character:
 | `vs` noun | 勉強 | 勉強し 勉強す 勉強さ 勉強せ — 4 |
 
 The rule's input stops at the first inflecting character, so whatever follows
-(ました / なかった / られる) is plain kana needing no ruby. 71,796 stem rules
-and 48,019 suru-noun rules cover the entire inflectional space.
+(ました / なかった / られる) is plain kana needing no ruby. 66,716 stem rules
+and 45,883 suru-noun rules cover the entire inflectional space.
 
 The ending sets have to be exact. `ICHIDAN_NEXT` originally included い, which
 made 着る collide with 着く and produced 着い → きい instead of つい.
@@ -96,52 +107,54 @@ The `vs` noun rules exist for precedence, not coverage: 勉強 alone already
 matches inside 勉強しました, but without a 外出し rule the rare noun
 外出し (そとだし) is a longer rule and wins longest-match over 外出 + し.
 
-## 4. Conflict resolution
+## 4. Resolution — or abstention
 
-Three tiers, in increasing authority:
+There is no ranking. A sequence gets a rule only when everything that could
+claim it agrees:
 
-1. **JMdict priority** — `ke_pri`/`re_pri` tags plus reading prominence.
-2. **Corpus frequency** (optional) — counts from UniDic over a training split,
-   at both surface level (中 → なか vs うち) and lemma level (行く/いく vs
-   行う/おこなう, which is what ranks the *stem* rules derived from them).
-   Corpus evidence forms a **tier above** JMdict priority rather than a bonus
-   added to it: a bounded bonus can never separate two readings that both max
-   it out. Below 25 observations it degrades to a bounded bonus, because 山道
-   is attested さんどう 10 times and やまみち zero, yet JMdict ranks やまみち
-   far higher and is right — that count is a tokeniser convention, not usage.
-3. **Explicit overrides** — `data/overrides.tsv`, 14 entries, each with a
-   stated reason. Mostly UniDic lexeme conventions (私 → ワタクシ,
-   日本 → ニッポン) that are correct as lemma readings and wrong as furigana.
+1. If the sequence is a lexicon surface classified `AMBIGUOUS`, nothing may
+   claim it — not even a form derived from a different verb.
+2. A direct lexical entry for exactly this surface outranks a form derived from
+   a longer word (同じ is the adjective おなじ, not 同じる's 連用形 どうじ)…
+3. …but only when they do not disagree. When they do and neither is
+   structurally preferable (説明し = 説明+し or the noun ときあかし), both lose.
+4. Two derived forms that disagree (行っ from 行く and from 行う) both lose.
 
-Overrides can only *select among readings JMdict already attests*; they can
-never introduce one.
+**Abstention is enforced with block rules.** Dropping a rule is not enough:
+難しい is ambiguous, but with nothing covering it the 難 rule matched and printed
+なん. A block rule matches the sequence and substitutes nothing, consuming the
+span so no shorter rule fires.
 
-### Rule length beats priority
+Full policy, and the four bugs the error corpus exposed, in
+[safety.md](safety.md).
+
+### Rule length beats everything
 
 Longest match is implemented as rule order inside a `ChainSubRuleSet`, so a
-longer rule always wins regardless of priority. Consequently, entries that are
-just "common word + particle" have to be **dropped**, not demoted: as long as a
-今日は rule exists it beats 今日, and 今日は６月… gets こんにちは. 249 such
-entries are removed.
+longer rule always wins. Entries that are just "common word + particle" have to
+be **dropped**: as long as a 今日は rule exists it beats 今日, and 今日は６月…
+gets こんにちは. No amount of down-ranking helps, because there is no ranking at
+match time.
 
 ## 5. Reusable ruby glyphs
 
-This is the load-bearing idea. Placing the *i*-th ruby kana of a reading is
-pure arithmetic:
+This is the load-bearing idea. A ruby glyph is identified by
 
 ```
-x_i = group_start·EM + (span·EM − n_kana·RUBY_ADV)/2 + i·RUBY_ADV
-    = 250 · (4·group_start + 2·span − n_kana + 2·i)
-    = 250 · t
+(kana character, size, x offset on a 1/20-em grid)
 ```
 
-So a ruby glyph is identified by `(kana, t)` and nothing else — not by the word
-it appears in. 318,798 rules need **3,262 ruby glyphs across 81 kana**, about
-40 positional variants each, and the inventory *saturates*: 100k rules need
-3,109, 318k need 3,262.
+and nothing else — never by the word it appears in. 300,364 rules need
+**14,194 ruby glyphs across 81 kana and 3 sizes**, and the inventory
+*saturates*: 100k rules need 12,591, 300k need 14,194.
 
-The alternative — one composite glyph per word — needs 318,798 glyphs, 4.9× the
+The alternative — one composite glyph per word — needs 300,364 glyphs, 4.6× the
 65,535 limit. That is the whole reason this architecture exists.
+
+Phase 1 computed the offset with a closed-form quarter-em formula, which is why
+its ruby could not be distributed. Phase 2 computes it in
+[`layout.py`](typography.md) and quantises the result; the grid is the knob that
+trades typography against inventory size.
 
 Each variant is a nested composite (see
 [opentype-notes.md](opentype-notes.md#4-nested-composites-dodge-the-scaled_component_offset-ambiguity)),
@@ -150,9 +163,10 @@ zero-advance, with `lsb == xMin`.
 ## 6. GSUB layout
 
 ```
-ccmp  →  Lookup C     ChainContextSubst fmt 1, 141 subtables, 318,798 rules
-         Lookup M0..M1444   MultipleSubst: base glyph → [ruby…, base glyph]
-vert  →  Lookup V     SingleSubst: ruby → blank, plus base punctuation forms
+ccmp  →  Lookup C          ChainContextSubst fmt 1, 134 subtables, 300,364 rules
+         Lookup M0..M1374  MultipleSubst: base glyph → [ruby…, base glyph]
+                           (a BLOCK rule maps it to [base glyph] alone)
+vert  →  Lookup V          SingleSubst: ruby → blank, + base punctuation forms
 vrt2  →  Lookup V
 ```
 
@@ -164,7 +178,10 @@ vrt2  →  Lookup V
   set, with a 48 kB budget to stay inside `Offset16` reach.
 - **MultipleSubst lookups are bin-packed.** A subtable is a map keyed by glyph,
   so it holds one output per glyph; the number of lookups needed is exactly
-  `max over glyphs of (distinct outputs)`. For the full lexicon that is 1,445.
+  `max over glyphs of (distinct outputs)`. For the core lexicon that is 1,375 —
+  and it is the binding scaling constraint: adding JMnedict pushes it to 8,547,
+  past the `LookupList` `Offset16` ceiling, and the font stops compiling
+  (see [limitations.md](limitations.md)).
 
 Registered under `DFLT`, `hani`, `kana` and `latn` so script selection cannot
 miss it.
@@ -191,11 +208,13 @@ tokens is not an error — so a span is scored whenever it aligns to token
 boundaries, and sub-token spans are scored against the token's own okurigana
 alignment.
 
-The headline metric is **token-level**: of all kanji-bearing tokens, how many
-got a correct reading. Span-level accuracy alone is misleading, because adding
-a fallback rule moves tokens from "no ruby" (unscored) into "scored", lowering
-span accuracy while making the font strictly more useful.
+The headline metric is **precision**: of the readings YomiFont actually renders,
+how many are right. Coverage is reported separately and is allowed to be low.
 
-Disagreements are split three ways: a different **attested** reading, a reading
-**not attested** for that word (a real defect, 0.36 % of spans), and a
-**deliberate override**.
+Disagreements are split into genuine errors and oracle conventions — the oracle
+picked a different reading of the same lexeme (明日 = あした vs あす), or its
+tokenizer split a word and concatenated per-token readings, losing rendaku
+(日曜日 → にちようひ). Both a strict and a convention-adjusted precision are
+reported so the assumption is visible.
+
+`--segmentation script` runs the same evaluation through the Blink model.

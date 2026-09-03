@@ -8,3 +8,5 @@ data/normalized/
 tests/integration/reports/
 tools/ctshape/ctshape
 benchmarks/bench_*.ttf
+.DS_Store
+dist/phase1/

@@ -1,18 +1,18 @@
 <!doctype html><html lang="ja"><meta charset="utf-8">
-<title>〇BASE《RUBY》 in the shipping font</title>
+<title>BASE｜（RUBY）｜ in the shipping font</title>
 <style>
 @font-face { font-family: Y; src: url("/dist/YomiFont-Regular.ttf"); }
 body{margin:0;padding:16px;background:#fff;font-family:-apple-system,system-ui}
 .r{font-family:Y;font-size:54px;line-height:2.1;white-space:pre}
 h2{font:600 13px/1.5 system-ui;color:#555;margin:14px 0 0}
 </style>
-<h2>1. kanji base — the case that did not work in Chrome before</h2>
-<div class="r">　〇月《ライト》　〇東京《エド》　〇宇宙《そら》</div>
-<h2>2. after a particle — the case the ｜ marker cannot do</h2>
-<div class="r">　私は〇月《ライト》を見た。　この〇本気《マジ》の話</div>
-<h2>3. long base</h2>
-<div class="r">　〇日本語能力試験《にほんごのうりょくしけん》</div>
-<h2>4. ordinary 《》 text must be untouched (no marker = not ruby)</h2>
-<div class="r">　小説《ノルウェイの森》　雑誌《週刊誌》</div>
-<h2>5. ordinary parentheses and automatic ruby, unchanged</h2>
-<div class="r">　私（わたし）　東京　新宿　一ヶ月</div>
+<h2>1. kanji base in Chrome — every character is one keystroke</h2>
+<div class="r">　月｜（ライト）｜　東京｜（エド）｜　宇宙｜（そら）｜</div>
+<h2>2. after a particle, and mixed into a sentence</h2>
+<div class="r">　私は月｜（ライト）｜を見た。　この本気｜（マジ）｜の話</div>
+<h2>3. ASCII, for editors</h2>
+<div class="r">　月|(ライト)|　東京|(エド)|</div>
+<h2>4. ordinary text must lose nothing</h2>
+<div class="r">　私（わたし）　価格（税別）　小説《ノルウェイの森》　表｜裏</div>
+<h2>5. automatic ruby, unchanged</h2>
+<div class="r">　東京　新宿　六本木　一ヶ月　日本語能力試験</div>

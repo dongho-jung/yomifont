@@ -344,7 +344,7 @@ def build_explicit_lookups(
             lookups.append(build_single_subst_lookup(s_ruby[cell], extension=True))
         scov = {k: _coverage(v, order) for k, v in s_cov.items()}
 
-        # run 1, with the marker: 〇 BASE{b} 《   -- base may be anything
+        # run 1: BASE{b} ｜ （  -- base is the run of kanji before the marker
         for b in range(1, split["base_max"] + 1):
             st = ot.ChainContextSubst()
             st.Format = 3
@@ -352,16 +352,15 @@ def build_explicit_lookups(
             st.BacktrackCoverage = []
             st.LookAheadGlyphCount = 0
             st.LookAheadCoverage = []
-            st.InputCoverage = ([scov["mark"]] + [scov["base"]] * b
+            st.InputCoverage = ([scov["kanji"]] * b + [scov["mark"]]
                                 + [scov["open"]])
             st.InputGlyphCount = len(st.InputCoverage)
             st.SubstLookupRecord = []
-            for idx in [0, b + 1] + list(range(1, b + 1)):
+            for idx in range(b + 2):
                 rec = ot.SubstLookupRecord()
                 rec.SequenceIndex = idx
-                rec.LookupListIndex = hide_idx if idx in (0, b + 1) else protect_idx
+                rec.LookupListIndex = hide_idx if idx >= b else protect_idx
                 st.SubstLookupRecord.append(rec)
-            st.SubstLookupRecord.sort(key=lambda r: r.SequenceIndex)
             st.SubstCount = len(st.SubstLookupRecord)
             subtables.append(st)
         # There is deliberately no marker-less variant. `BASE{b} 《` would be
@@ -370,7 +369,7 @@ def build_explicit_lookups(
         # prose: 小説《ノルウェイの森》 came out as 小説ノルウェイの森》, with the
         # opening bracket gone and the closing one left. The marker is what
         # makes the intent visible inside the first run.
-        # run 2: RUBY{n} 》
+        # run 2: RUBY{n} ） ｜
         for n in range(1, split["ruby_max"] + 1):
             st = ot.ChainContextSubst()
             st.Format = 3
@@ -378,7 +377,8 @@ def build_explicit_lookups(
             st.BacktrackCoverage = []
             st.LookAheadGlyphCount = 0
             st.LookAheadCoverage = []
-            st.InputCoverage = [scov["ruby"]] * n + [scov["close"]]
+            st.InputCoverage = ([scov["ruby"]] * n + [scov["close"]]
+                                + [scov["mark"]])
             st.InputGlyphCount = len(st.InputCoverage)
             st.SubstLookupRecord = []
             for i, cell in enumerate(split["cells"][n]):
@@ -386,10 +386,11 @@ def build_explicit_lookups(
                 rec.SequenceIndex = i
                 rec.LookupListIndex = s_idx[cell]
                 st.SubstLookupRecord.append(rec)
-            rec = ot.SubstLookupRecord()
-            rec.SequenceIndex = n
-            rec.LookupListIndex = hide_idx
-            st.SubstLookupRecord.append(rec)
+            for k in (n, n + 1):
+                rec = ot.SubstLookupRecord()
+                rec.SequenceIndex = k
+                rec.LookupListIndex = hide_idx
+                st.SubstLookupRecord.append(rec)
             st.SubstCount = len(st.SubstLookupRecord)
             subtables.append(st)
 

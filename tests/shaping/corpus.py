@@ -138,21 +138,23 @@ EXPLICIT = [
 # a run of kanji. This is the form that survives Blink's run split, because it
 # compiles to two rules that never have to see each other.
 EXPLICIT_SPLIT = [
-    ("〇月《ライト》", 1, "ライト"),
-    ("〇東京《エド》", 2, "エド"),
-    ("〇宇宙《そら》", 2, "そら"),
-    ("〇強敵《とも》", 2, "とも"),
-    ("〇日本語能力試験《にほんごのうりょくしけん》", 7, "にほんごのうりょくしけん"),
-    ("〇超絶暗黒剣《ダークネスブレード》", 5, "ダークネスブレード"),
-    ("〇ほんき《マジ》", 3, "マジ"),
-    ("〇AI《エーアイ》", None, "エーアイ"),
+    ("月｜（ライト）｜", 1, "ライト"),
+    ("東京｜（エド）｜", 2, "エド"),
+    ("宇宙｜（そら）｜", 2, "そら"),
+    ("強敵｜（とも）｜", 2, "とも"),
+    ("日本語能力試験｜（にほんごのうりょくしけん）｜", 7, "にほんごのうりょくしけん"),
+    ("超絶暗黒剣｜（ダークネスブレード）｜", 5, "ダークネスブレード"),
+    # ASCII throughout, for editors and code
+    ("月|(ライト)|", 1, "ライト"),
+    ("東京|(エド)|", 2, "エド"),
 ]
 
-# 《》 without the marker is ordinary text and must survive intact. The marker
-# is required precisely because the first run cannot see whether a reading
-# follows: an inferring rule hid the 《 of 小説《ノルウェイの森》.
+# Both markers are load-bearing against ordinary prose: without the one after
+# the base, `BASE（` eats the bracket of 価格（税別）; without the one after the
+# close, `KANA+ ）` swallows 私（わたし）. None of these may lose a character.
 SPLIT_UNMARKED = [
-    "小説《ノルウェイの森》", "雑誌《週刊誌》", "《重要》", "曲《ひまわりの約束》",
+    "私（わたし）", "価格（税別）", "月（ライト）", "（ですます）",
+    "小説《ノルウェイの森》", "表｜裏", "第一｜第二",
 ]
 
 # The ASCII syntax must produce an identical glyph stream.

@@ -136,7 +136,11 @@ def make_base_font(base_path: str, chars: set[str], keep_all: bool = False) -> T
     ss = subset.Subsetter(options=opts)
     # keep ASCII and Japanese punctuation so the font is usable on its own
     extra = "".join(chr(c) for c in range(0x20, 0x7F))
-    extra += "。、！？「」『』（）・ー〜　0123456789"
+    # Japanese punctuation the font should be able to draw on its own. 《》 in
+    # particular: they stopped being explicit-ruby delimiters, and dropping
+    # them from here as well would have left ordinary 小説《ノルウェイの森》
+    # falling back to another face mid-sentence.
+    extra += "。、！？「」『』（）〈〉《》【】〔〕・ー〜　0123456789"
     ss.populate(text="".join(sorted(chars)) + extra)
     ss.subset(font)
     return font
@@ -268,11 +272,11 @@ def build_font(
                                 if variant_name(c, *cell) in font["glyf"].glyphs}
                          for cell in explicit_mod.split_cells(explicit)},
                 "coverage": {
-                    "mark": [cmap[ord(c)] for c in explicit_mod.MARK
+                    "mark": [cmap[ord(c)] for c in explicit_mod.SPLIT_MARK
                              if ord(c) in cmap],
-                    "open": [cmap[ord(c)] for c in explicit_mod.AOZORA_OPEN
+                    "open": [cmap[ord(c)] for c in explicit_mod.SPLIT_OPEN
                              if ord(c) in cmap],
-                    "close": [cmap[ord(c)] for c in explicit_mod.AOZORA_CLOSE
+                    "close": [cmap[ord(c)] for c in explicit_mod.SPLIT_CLOSE
                               if ord(c) in cmap],
                     "base": sorted(set(cmap.values()) - delims,
                                    key=glyph_order.__getitem__),

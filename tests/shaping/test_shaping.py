@@ -393,7 +393,7 @@ def test_split_form_survives_being_split(text, base_em, reading):
     reading+closer in another. Shaping the halves separately and concatenating
     is what that looks like, and it has to match the single-buffer result.
     """
-    cut = text.index("《") + 1
+    cut = max(text.find("（"), text.find("(")) + 1
     halves = shape_harfbuzz(FONT, text[:cut]) + shape_harfbuzz(FONT, text[cut:])
     assert _reading(halves) == reading, text
     assert total_advance(halves) == total_advance(shape_harfbuzz(FONT, text)), text
@@ -407,29 +407,45 @@ def test_split_form_leaves_ordinary_parentheses_alone():
 
 
 @pytest.mark.parametrize("text", SPLIT_UNMARKED)
-def test_split_form_needs_its_marker(text):
-    """《》 without 〇 is ordinary text, and nothing of it may disappear.
+def test_split_form_needs_both_markers(text):
+    """Ordinary prose must not lose a character to the split rules.
 
-    This is why the marker is required rather than inferred from the preceding
-    kanji: the first run cannot see whether a reading follows the bracket, so
-    an inferring rule turned 小説《ノルウェイの森》 into 小説ノルウェイの森》.
+    Both markers earn their place here. Without the one after the base,
+    `BASE（` matches 価格（税別） and eats the bracket; without the one after the
+    close, `KANA+ ）` matches 私（わたし） and swallows the whole parenthesis.
     """
     glyphs = shape_harfbuzz(FONT, text)
     assert not _markup_hidden(glyphs), text
-    for ch in "《》":
-        if ch in text:
-            assert _plain_glyph_names(ch)[0] in [g.name for g in glyphs], text
+    # every delimiter the user typed is still drawn; automatic ruby on the
+    # ordinary words in these strings is expected and fine
+    for ch in text:
+        if ch in "｜|（(）)《》":
+            assert _plain_glyph_names(ch)[0] in [g.name for g in glyphs], \
+                f"{text}: {ch} disappeared"
 
 
 def test_split_form_after_kana():
-    """The case the ｜ marker cannot do in Blink: an expression after a particle.
+    """An expression after a particle -- what the leading-｜ form cannot do.
 
-    〇 is Han, so a preceding kana run cannot absorb it the way it absorbs ｜.
+    Its marker is Script=Common and a preceding kana run absorbs it, so the
+    first rule never matches. A marker placed after the base has nothing to be
+    absorbed by: the base itself starts the run.
     """
-    glyphs = shape_harfbuzz(FONT, "私は〇月《ライト》を見た。")
+    glyphs = shape_harfbuzz(FONT, "私は月｜（ライト）｜を見た。")
     assert "ライト" in _reading(glyphs)
     # 私 は 月 を 見 た 。 -- the marker and both brackets are weightless
     assert total_advance(glyphs) == 7 * 1000
+
+
+def test_split_form_base_is_the_kanji_run():
+    """The base is the kanji before the marker, whether or not the engine splits.
+
+    Admitting kana would make 私は月｜（ライト）｜ take 私は月 in an engine that
+    sees the whole line and 月 in one that itemises it -- the same text
+    rendering two ways.
+    """
+    for text, base_em in [("私は月｜（ライト）｜", 3), ("東京都｜（とうきょうと）｜", 3)]:
+        assert total_advance(shape_harfbuzz(FONT, text)) == base_em * 1000, text
 
 
 def test_line_break_inside_an_expression_fails_safe():

@@ -63,7 +63,7 @@ START = "｜|"    # U+FF5C FULLWIDTH VERTICAL LINE, U+007C VERTICAL LINE
 OPEN = "（("     # U+FF08 FULLWIDTH LEFT PARENTHESIS, U+0028 LEFT PARENTHESIS
 CLOSE = "）)"    # U+FF09 FULLWIDTH RIGHT PARENTHESIS, U+0029 RIGHT PARENTHESIS
 
-# --- the Aozora form, which also works where the text is split into runs ----
+# --- the split form, which also works where the text is itemised ------------
 # Blink itemises before shaping and never puts a Han base and a Kana reading in
 # one buffer, so the rule above -- which needs the whole expression at once --
 # gets nothing on a kanji base, the case the feature exists for.
@@ -71,38 +71,32 @@ CLOSE = "）)"    # U+FF09 FULLWIDTH RIGHT PARENTHESIS, U+0029 RIGHT PARENTHESIS
 # Splitting it into two rules, one per run, needs no information to cross the
 # boundary at all:
 #
-#     〇月《   one run: the marker, the base, the opener
-#     ライト》 another: the reading and the closer
+#     月｜（     one run: the base, a marker, the opener
+#     ライト）｜  another: the reading, the closer, a marker
 #
-# Three characters make that work, each chosen from measurement rather than
-# from the Unicode properties (tests/integration/itemize_probe.html):
+# Both markers sit *after* something that already started the run, which is the
+# whole trick. The leading ｜ of the other form is Script=Common and gets
+# absorbed by a preceding kana run -- after a particle the first rule loses it
+# and the expression renders half-done. A marker placed after the base has
+# nothing to be absorbed by: a kanji base starts its own Han run and a kana
+# base starts its own Kana run, and a Common character joins whatever precedes.
 #
-#   〇  U+3007, Script=Han. A preceding kana run cannot absorb it, which is
-#       exactly what goes wrong with ｜: ｜ is Script=Common and joins whatever
-#       is in front of it, so after a particle the first rule loses its marker
-#       and the expression renders half-done. 〇 measured SPLIT after both
-#       hiragana and katakana, and SAME_RUN before Han. ◯, ※, 〓 and 〆 all
-#       failed the same test. It is also easy to type: まる converts to it.
-#   《》 U+300A/U+300B, the Aozora Bunko ruby delimiters. They remove the need
-#       for a trailing marker: the second rule is `KANA+ 》`, and 《かな》 is
-#       rare in ordinary prose *and* already means ruby by convention, where
-#       `KANA+ ）` would have swallowed 私（わたし）.
+# Both markers are also load-bearing against ordinary prose. Without the one
+# after the base, `BASE（` would match 価格（税別） and eat the bracket; without
+# the one after the close, `KANA+ ）` would match 私（わたし） and swallow it.
+# Measured over 200,000 Tatoeba sentences: ｜ and | do not occur at all, and
+# neither do 漢字｜（ or かな）｜. 「」 occurs 3,846 times and 々 3,326, which
+# is why neither could be used.
 #
-# The marker is required, unlike in Aozora. Aozora can infer the base from the
-# preceding kanji run because a human reads the whole line; the first run
-# cannot see whether a reading follows the 《, so an inferring rule would hide
-# the bracket of any 漢字《…》 in ordinary prose -- 小説《ノルウェイの森》 came
-# out as 小説ノルウェイの森》. The marker is what makes the intent visible
-# inside the first run.
-#
-# In Blink the marker only reaches the base when both are ideographs, since 〇
-# is Han and a kana base starts its own run. A kana base there keeps working
-# with the ｜BASE（RUBY） form, which is a single run in Blink anyway.
-MARK = "〇"
-AOZORA_OPEN = "《"
-AOZORA_CLOSE = "》"
+# The base is the run of *kanji* before the marker. Admitting kana there would
+# make 私は月｜（ライト）｜ take 私は月 in an engine that sees the whole line,
+# and 月 in one that splits it -- the same text rendering two ways. A kana base
+# keeps working with ｜BASE（RUBY）, which is a single run in Blink anyway.
+SPLIT_MARK = "｜|"
+SPLIT_OPEN = OPEN
+SPLIT_CLOSE = CLOSE
 
-DELIMITERS = START + OPEN + CLOSE + MARK + AOZORA_OPEN + AOZORA_CLOSE
+DELIMITERS = START + OPEN + CLOSE + SPLIT_MARK
 
 # --- ruby alphabet --------------------------------------------------------
 # Every character that may appear inside （...）.  Each one costs

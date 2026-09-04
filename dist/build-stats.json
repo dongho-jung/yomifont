@@ -2,7 +2,7 @@
  "rules_in": 460082,
  "rules_compiled": 460075,
  "rules_dropped": 7,
- "glyphs": 63056,
+ "glyphs": 63070,
  "ruby_glyphs": 49271,
  "ruby_kana": 183,
  "ruby_sizes": [
@@ -11,10 +11,10 @@
   0.5
  ],
  "block_rules": 6275,
- "font_bytes": 20305196,
- "gsub_bytes": 14872894,
- "glyf_bytes": 3686862,
- "build_seconds": 276.43,
+ "font_bytes": 20307160,
+ "gsub_bytes": 14873010,
+ "glyf_bytes": 3688356,
+ "build_seconds": 265.67,
  "explicit": {
   "base_max": 8,
   "ruby_max": 16,
@@ -28,10 +28,10 @@
   "lookups": 192
  },
  "timing": {
-  "subset": 1.99,
-  "ruby": 6.69,
-  "gsub": 9.04,
-  "save": 258.71
+  "subset": 2.0,
+  "ruby": 6.68,
+  "gsub": 8.97,
+  "save": 248.02
  },
  "chain_rules": 460075,
  "chain_subtables": 210,

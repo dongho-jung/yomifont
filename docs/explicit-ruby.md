@@ -29,41 +29,49 @@ nothing visible to a shaping engine can choose between them.
 
 | form | works in | typography |
 |---|---|---|
-| `〇月《ライト》` | **everywhere, Chrome included** | ruby right-aligned to the base, fixed size |
-| `｜月（ライト）` / `\|月(ライト)` | HarfBuzz, CoreText, Safari; Chrome only for kana bases | centred, 均等割り付け, size steps down |
+| `月｜（ライト）｜` | **everywhere, Chrome included** | ruby right-aligned to the base, fixed size |
+| `｜月（ライト）` | HarfBuzz, CoreText, Safari; Chrome only for kana bases | centred, 均等割り付け, size steps down |
 
-Use `〇BASE《RUBY》` unless you know the text will never be read in a
+Use `BASE｜（RUBY）｜` unless you know the text will never be read in a
 Chromium-based app. The `｜BASE（RUBY）` form gives better typography where the
 engine hands the font the whole expression at once, and it wins automatically
 when it can — the two are one rule set, tried longest first.
 
 Why two forms exist is [Engines](#engines): Blink itemises text into script
 runs before shaping and never puts a Han base and a Kana reading in the same
-one, so a rule that needs both at once gets nothing. `〇月《` and `ライト》` are
-separate runs and separate rules, and nothing has to cross the boundary.
+one, so a rule that needs both at once gets nothing. `月｜（` and `ライト）｜`
+are separate runs and separate rules, and nothing has to cross the boundary.
 
-### The `〇BASE《RUBY》` form
+### The `BASE｜（RUBY）｜` form
 
 ```
-〇月《ライト》        〇宇宙《そら》        〇本気《マジ》
-私は〇月《ライト》を見た。
+月｜（ライト）｜      宇宙｜（そら）｜      本気｜（マジ）｜
+私は月｜（ライト）｜を見た。
+月|(ライト)|          ← ASCII throughout, for editors
 ```
 
-| role | character | why this one |
-|---|---|---|
-| marker | `〇` U+3007 | Script=**Han**. `｜` is Common and gets absorbed by a preceding kana run, so after a particle the first rule loses it. `〇` measured SPLIT after both hiragana and katakana. Type it as **まる**. `◯`, `※`, `〓` and `〆` all failed the same test. |
-| open | `《` U+300A | the Aozora Bunko ruby delimiter |
-| close | `》` U+300B | lets the second rule be `KANA+ 》`. With `）` that rule would also match 私（わたし） and swallow it, which is why no trailing marker is needed here. |
+Every character is one keystroke in a Japanese IME: `｜` is the `\|` key,
+`（` and `）` are `(` and `)`.
 
-**The marker is required**, unlike in Aozora, which infers the base from the
-preceding kanji. The first run cannot see whether a reading follows the `《`, so
-an inferring rule hid the bracket of any `漢字《…》` in ordinary prose:
-`小説《ノルウェイの森》` came out as `小説ノルウェイの森》`. Requiring `〇` is
-what keeps ordinary `《》` text intact.
+**Both markers earn their place.** Without the one after the base, the first
+rule would be `BASE（`, which matches 価格（税別） and eats the bracket. Without
+the one after the close, the second would be `KANA+ ）`, which matches
+私（わたし） and swallows the whole parenthesis. Measured over 200,000 Tatoeba
+sentences: `｜` and `|` do not occur at all, and neither do `漢字｜（` or
+`かな）｜`. `「」` occurs 3,846 times and `々` 3,326, which is why neither could
+be used as a marker.
 
-In Blink the marker only reaches the base when both are ideographs, since `〇`
-is Han and a kana base starts its own run. A kana base there keeps working with
-`｜ほんき（マジ）`, which is a single run in Blink anyway.
+**Both markers sit after something that already started the run**, which is the
+whole trick. The leading `｜` of the other form is Script=Common and gets
+absorbed by a preceding kana run — after a particle the first rule loses it and
+the expression renders half-done. A marker placed after the base has nothing to
+be absorbed by: a kanji base starts its own Han run, a kana base its own Kana
+run, and a Common character joins whatever precedes it.
+
+**The base is the run of kanji before the marker.** Admitting kana there would
+make `私は月｜（ライト）｜` take 私は月 in an engine that sees the whole line and
+月 in one that splits it — the same text rendering two ways. A kana or Latin
+base keeps working with `｜BASE（RUBY）`, which is a single run in Blink anyway.
 
 ## Syntax of the ｜BASE（RUBY） form
 

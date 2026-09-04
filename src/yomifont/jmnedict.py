@@ -37,6 +37,17 @@ PLACE_LIKE = {"place", "station", "company", "organization", "product", "work",
 # people, and a single listed reading usually means incomplete data.
 PERSON_LIKE = {"surname", "given", "masc", "fem", "person", "unclass", "char"}
 
+# Administrative suffixes.  Admitting every place-like entry is safe but does
+# not compile -- it needs 6,304 MultipleSubst lookups against a LookupList
+# ceiling near 3,000 (see docs/opentype-notes.md).  Names ending in one of
+# these are the subset that actually turns up in running text, addresses and
+# datelines, their readings are official, and they cost 2,039 lookups.
+ADMIN_SUFFIX = tuple("都道府県市区町村郡")
+
+
+def is_admin_place(surface: str, ntypes) -> bool:
+    return bool(set(ntypes) & PLACE_LIKE) and surface.endswith(ADMIN_SUFFIX)
+
 
 def parse(path: str, verbose: bool = True) -> list[LexEntry]:
     ents = entity_map(path)

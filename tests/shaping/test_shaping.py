@@ -24,7 +24,8 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from corpus import (ABSTAIN, EXPLICIT, EXPLICIT_ASCII,  # noqa: E402
-                    EXPLICIT_MALFORMED, NO_RUBY, POC, SENTENCES)
+                    EXPLICIT_MALFORMED, NO_RUBY, POC, SENTENCES,
+                    STABILIZATION, STABILIZATION_ABSTAIN)
 from shaper import (base_text, ruby_runs, shape_coretext,  # noqa: E402
                     shape_harfbuzz, total_advance)
 
@@ -110,6 +111,52 @@ def test_abstains_on_ambiguous(text, why):
 def test_no_ruby_for_kana_only(text):
     glyphs = shape_harfbuzz(FONT, text)
     assert [g for g in glyphs if g.ruby_char is not None] == []
+
+
+@pytest.mark.parametrize("text,expected", STABILIZATION)
+def test_stabilization_regressions(text, expected):
+    runs = ruby_runs(shape_harfbuzz(FONT, text))
+    assert runs == expected, f"{text}: got {runs}"
+
+
+@pytest.mark.parametrize("text,why", STABILIZATION_ABSTAIN)
+def test_stabilization_abstentions(text, why):
+    """Wrong automatic ruby is worse than none: these must render nothing."""
+    ruby = [g.name for g in shape_harfbuzz(FONT, text) if g.ruby_char is not None]
+    assert ruby == [], f"{text} ({why}) should have no ruby, got {ruby}"
+
+
+def test_no_single_character_automatic_rules():
+    """The single-kanji fallback is gone, and must stay gone.
+
+    A lone kanji is polyphonic and nothing a shaping engine can see resolves
+    it, so 月 gets no ruby rather than one of つき / げつ / がつ.
+    """
+    import json
+    rules = [json.loads(l) for l in open(
+        os.path.join(ROOT, "data", "normalized", "rules.jsonl"), encoding="utf-8")]
+    singles = [r for r in rules if len(r[0]) == 1 and r[1]]
+    assert singles == [], f"{len(singles)} single-character ruby rules leaked in"
+
+
+def test_no_oversized_single_subst():
+    """A SingleSubst fmt 2 reaches its Coverage past the substitute array.
+
+    Over ~32,765 mappings that Offset16 cannot reach, and fontTools has no
+    splitter for lookup type 1 -- the build simply stops. Keep every subtable
+    well inside it. See docs/opentype-notes.md.
+    """
+    from fontTools.ttLib import TTFont
+
+    font = TTFont(FONT, lazy=True)
+    worst = 0
+    for lk in font["GSUB"].table.LookupList.Lookup:
+        for st in lk.SubTable:
+            inner = getattr(st, "ExtSubTable", st)
+            if getattr(inner, "LookupType", lk.LookupType) == 1 or \
+               type(inner).__name__ == "SingleSubst":
+                worst = max(worst, len(getattr(inner, "mapping", {}) or {}))
+    assert 0 < worst <= 32_000, f"largest SingleSubst subtable has {worst} mappings"
 
 
 def test_longest_match_beats_prefix():
@@ -235,28 +282,86 @@ def test_ascii_syntax_is_identical(ascii_text, fullwidth_text):
     assert [g.name for g in a] == [g.name for g in f], ascii_text
 
 
-def _explicit_fired(glyphs) -> bool:
-    """Did the explicit-ruby rule match?  It leaves two unmistakable traces."""
-    return any(g.name == "ruby.blank" or g.name.startswith("x.") for g in glyphs)
+def _markup_hidden(glyphs) -> bool:
+    """Did anything the user typed stop being drawn?"""
+    return any(g.name == "ruby.blank" for g in glyphs)
+
+
+def _protected(glyphs) -> bool:
+    """Did the base span get claimed, suppressing automatic ruby on it?
+
+    Distinct from `_markup_hidden`: claiming the span is invisible -- the
+    duplicate draws exactly like the original -- and it is what the Blink
+    fail-safe does on its own when it can see ｜BASE（ but not the reading.
+    """
+    return any(g.name.startswith("x.") for g in glyphs)
 
 
 @pytest.mark.parametrize("text,why", EXPLICIT_MALFORMED)
 def test_malformed_markup_is_left_alone(text, why):
     """Broken markup stays visible -- never partly transformed.
 
-    Asserted as "the explicit rule did not fire", not as "the glyph stream is
-    the no-GSUB stream": several of these cases contain ordinary words, and
-    *automatic* ruby is supposed to keep working on them. 月（ライトという意味）
-    should still read 意味 as いみ; what it must not do is swallow the
-    parentheses.
+    Asserted as "nothing the user typed stopped being drawn", not as "the glyph
+    stream is the no-GSUB stream", for two reasons. Several of these cases
+    contain ordinary words and *automatic* ruby is supposed to keep working on
+    them -- 月（ライトという意味） should still read 意味 as いみ. And a
+    well-formed prefix legitimately claims its base span (see the Blink
+    fail-safe), which is invisible.
     """
     glyphs = shape_harfbuzz(FONT, text)
-    assert not _explicit_fired(glyphs), f"{text} ({why}) was transformed"
-    # every delimiter the user typed is still drawn as itself
+    assert not _markup_hidden(glyphs), f"{text} ({why}) hid part of the markup"
     for ch in text:
         if ch in "｜|（(）)":
             assert _plain_glyph_names(ch)[0] in [g.name for g in glyphs], \
                 f"{text} ({why}): {ch} disappeared"
+
+
+def test_protected_duplicates_draw_identically():
+    """Claiming a base span must be invisible.
+
+    The fail-safe swaps base glyphs for duplicates whenever it sees ｜BASE（,
+    including when the reading never arrives. That is only acceptable if the
+    duplicate is indistinguishable from the original.
+    """
+    from fontTools.pens.recordingPen import RecordingPen
+    from fontTools.ttLib import TTFont
+
+    font = TTFont(FONT)
+    gs = font.getGlyphSet()
+    hmtx = font["hmtx"]
+    dups = [n for n in font.getGlyphOrder() if n.startswith("x.")]
+    assert dups, "expected protected duplicates"
+    for name in dups[:400]:
+        orig = name[2:]
+        assert hmtx[name] == hmtx[orig], name
+        a, b = RecordingPen(), RecordingPen()
+        gs[name].draw(a)
+        gs[orig].draw(b)
+        # the duplicate is a one-component composite of the original
+        assert a.value and (a.value == b.value
+                            or a.value == [("addComponent", (orig, (1, 0, 0, 1, 0, 0)))]), name
+
+
+def test_blink_failsafe_claims_the_base_from_the_prefix_alone():
+    """｜BASE（ with no readable reading must still suppress automatic ruby.
+
+    Blink never shows one rule the whole expression, but it does keep
+    ｜BASE（ together (tests/integration/itemize_probe.html). Without this the
+    author's ｜宇宙（そら） renders in Chrome as visible markup plus うちゅう --
+    the dictionary reading they explicitly replaced.
+    """
+    # The reading is unusable, so the full expression cannot match. What must
+    # not happen is the *base* falling back to its dictionary reading; ruby on
+    # the rest of the string (漢字 is an ordinary word) is fine and expected.
+    for text, base, suppressed in [("｜宇宙（漢字）", "宇宙", "うちゅう"),
+                                   ("｜東京（漢字）", "東京", "とうきょう")]:
+        glyphs = shape_harfbuzz(FONT, text)
+        assert _protected(glyphs), f"{text}: base span was not claimed"
+        assert suppressed not in _reading(glyphs), \
+            f"{text} showed {suppressed}, the reading the author replaced"
+    # ...and the base still reads normally when it is not annotated
+    assert ruby_runs(shape_harfbuzz(FONT, "宇宙")) == ["うちゅう"]
+    assert ruby_runs(shape_harfbuzz(FONT, "東京")) == ["とうきょう"]
 
 
 def test_explicit_ruby_reuses_the_shared_inventory():
@@ -281,8 +386,8 @@ def test_line_break_inside_an_expression_fails_safe():
     for cut in range(1, len(text)):
         for half in (text[:cut], text[cut:]):
             glyphs = shape_harfbuzz(FONT, half)
-            assert not _explicit_fired(glyphs), \
-                f"break at {cut} half-transformed {half!r}"
+            assert not _markup_hidden(glyphs), \
+                f"break at {cut} hid markup in {half!r}"
     # The base half may still pick up an *automatic* reading -- that is correct,
     # it is an ordinary word once the markup is gone -- but the delimiters must
     # never vanish, which is what would strand ruby on the wrong line.

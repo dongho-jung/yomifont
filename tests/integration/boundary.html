@@ -1,0 +1,20 @@
+<!doctype html><html lang="ja"><meta charset="utf-8">
+<title>Blink run-boundary context probe</title>
+<style>
+@font-face { font-family: Y; src: url("/dist/YomiFont-Regular.ttf"); }
+body{margin:0;padding:14px;background:#fff;font-family:-apple-system,system-ui}
+.r{font-family:Y;font-size:52px;line-height:1.95;white-space:pre}
+h2{font:600 12px/1.5 system-ui;color:#555;margin:12px 0 0}
+</style>
+<!-- Does the Blink failsafe still claim the base when the marker has a
+     left neighbour?  A Script=Common marker attaches to the *preceding*
+     run, so what precedes the expression decides whether the font can
+     still see ｜BASE（ as one run. -->
+<h2>1. expression alone</h2><div class="r">｜宇宙（そら）</div>
+<h2>2. preceded by kanji</h2><div class="r">星｜宇宙（そら）</div>
+<h2>3. preceded by hiragana</h2><div class="r">の｜宇宙（そら）</div>
+<h2>4. preceded by katakana</h2><div class="r">ア｜宇宙（そら）</div>
+<h2>5. preceded by a space</h2><div class="r"> ｜宇宙（そら）</div>
+<h2>6. preceded by close-paren + space (the domtest line)</h2><div class="r">） ｜宇宙（そら）</div>
+<h2>7. two expressions in a row</h2><div class="r">｜月（ライト） ｜宇宙（そら）</div>
+<h2>8. reference: bare base shows うちゅう</h2><div class="r">宇宙</div>

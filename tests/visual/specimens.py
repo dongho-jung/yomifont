@@ -26,6 +26,9 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 SPECIMENS = [
+    # regressions from the stabilization pass
+    "月", "一ヶ月", "月曜日", "今月", "新宿区", "東京都新宿区", "東京都渋谷区",
+    "東京大学",
     # single groups
     "東京", "京都", "今日", "日本語", "学校", "図書館",
     # long single-group readings

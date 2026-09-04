@@ -80,6 +80,67 @@ covers — so the reference is exact and rasterizer-independent. Safari matches 
 
 **Validation.** OTS passes at every scale from 1,000 to 300,364 rules.
 
+## Exactly where Blink starts a new shaping run
+
+Measured, not inferred from Unicode properties. `make_itemize_font.py` builds a
+font carrying one GSUB rule per candidate character sequence; each rule blanks
+the sequence's *first* glyph, so the text is one em narrower **iff the whole
+sequence reached GSUB in a single run**. Every character used is in the probe
+font, so a split is never font fallback, and `itemize_probe.html` reads two
+independent channels (DOM inline width and canvas ink extent) because Chrome
+and WebKit are each unreliable on one of them.
+
+```bash
+PYTHONPATH=src ./tests/integration/make_itemize_font.py dist/Itemize.ttf
+./tests/integration/server.py &
+open http://127.0.0.1:8777/tests/integration/itemize_probe.html
+```
+
+153 sequences, 30 separator characters. Chrome 152:
+
+| transition | result |
+|---|---|
+| Han → Han | SAME_RUN |
+| Han → **digit** | **SAME_RUN** |
+| Han → Hiragana | SPLIT |
+| Han → Katakana | SPLIT |
+| Han → Latin | SPLIT |
+| Hiragana → Han | SPLIT |
+| Katakana → Han | SPLIT |
+| Hiragana ↔ Katakana | SAME_RUN |
+
+And with a separator between Han and Kana — **all 28 split**, in both
+directions, including every invisible one:
+
+```
+｜ | （ ( ： : ／ / ［ [ ｛ ＜ 、 ・ ー 　 space _
+U+200B ZWSP   U+200C ZWNJ   U+200D ZWJ   U+2060 WORD JOINER
+U+034F CGJ    U+FE00 VS1    U+FE0E VS15
+U+E000 PUA    U+F8FF PUA
+```
+
+The control that makes this conclusive: the same separators between two *kana*
+are SAME_RUN (ZWSP, ZWJ, WJ, CGJ, VS1, VS15 all pass), so those characters do
+reach GSUB and do participate in matching. Their Han↔Kana split is a real run
+boundary, not the character being stripped. Two exceptions, both informative:
+**U+200C ZWNJ splits even between two kana**, and **PUA splits from everything**
+— a PUA character measured 16 px, our own probe glyph, so that is a genuine run
+boundary and not fallback.
+
+So the rule is not "special characters break runs". Common-script characters
+*join* the Han run — that is why `Han → digit` stays together and why the
+prefix `｜月（` is one run. What Blink will not do is put Han and Kana in the
+same run, whatever sits between them.
+
+**Consequence for explicit ruby.** No character encoding of the syntax can
+work in Blink — not punctuation, not joiners, not variation selectors, not PUA.
+The font can still see the *prefix* `｜BASE（`, which is what the fail-safe in
+[explicit-ruby.md](explicit-ruby.md) uses.
+
+One measured asymmetry between the two syntaxes, the first found: the
+fullwidth prefix `｜月（` is SAME_RUN, the ASCII prefix `|月(` is SPLIT. The
+fail-safe therefore only works for the fullwidth form.
+
 ## Blink's script segmentation
 
 Blink itemises a text node into script runs *before* shaping, so no GSUB rule

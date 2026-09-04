@@ -45,10 +45,20 @@ QUANTUM = 50
 # smaller steps are only used when a reading cannot otherwise be fitted.
 RUBY_SIZES = (0.50, 0.44, 0.38)
 
-# Fraction of the ruby advance that tracking may be tightened by before the
-# next size down is tried.  Kana ink is narrower than its em box, so a little
-# negative tracking is invisible.
-MIN_TRACKING = 0.86
+# How close together tracking may set two ruby kana, as a fraction of their
+# advance, before the next size down is tried.
+#
+# This was 0.86 on the theory that kana ink is narrower than its em box, so a
+# little negative tracking is invisible.  It is not: measured over the whole
+# ruby inventory the widest kana (ぷ / ぶ, whose handakuten hangs off the right)
+# inks 95.2 % of its advance.  A pitch of 0.86 therefore let outlines *overlap*
+# -- 東京大学 set だ and い crossing by 0.0195 em -- which is a correctness bug,
+# not a tight fit.
+#
+# 1.0 means kana are never set closer than their own advance, which leaves at
+# least 1 - 0.952 = 0.048 of an advance between the ink of any two of them.
+MAX_INK_RATIO = 0.952   # measured; tests/visual/geometry.py re-derives it
+MIN_TRACKING = 1.0
 
 # How far ruby may hang past the edge of its base span, in em units. Half a
 # ruby character. Two adjacent groups can therefore approach each other but a

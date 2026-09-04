@@ -5,7 +5,7 @@ WEB      = dist/YomiFont-Web-Regular.ttf
 EVAL_N  ?= 20000
 TRAIN   ?= 20000:150000
 
-.PHONY: help venv data font web all test eval eval-blink visual names bench \
+.PHONY: help venv data font web all test eval eval-blink visual names audit bench \
         bench-explicit tools serve clean distclean
 
 help:
@@ -79,9 +79,12 @@ eval-blink: ## same, modelling Blink script segmentation
 visual: ## typography contact sheet + geometric metrics
 	PYTHONPATH=src:tests/shaping $(PY) tests/visual/specimens.py
 
-names: ## experimental build with JMnedict proper names (does NOT compile, see docs)
-	$(PYPATH) $(PY) scripts/pipeline.py --names --out dist/YomiFont-Names.ttf \
+names: ## experimental build with ALL JMnedict names (does NOT compile, see docs)
+	$(PYPATH) $(PY) scripts/pipeline.py --names all --out dist/YomiFont-Names.ttf \
 	    --family "YomiFont Names" --rules data/normalized/rules_names.jsonl
+
+audit: ## does every rule spell the reading it came from?
+	$(PYPATH) $(PY) scripts/audit_readings.py
 
 bench: ## scaling benchmark, 1k -> all rules
 	$(PYPATH) $(PY) benchmarks/scale.py --sizes 1000,5000,10000,25000,50000,100000,200000,300000,0

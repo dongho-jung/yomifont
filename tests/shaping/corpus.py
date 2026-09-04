@@ -34,6 +34,43 @@ POC = [
     ("国際交流基金", ["こくさいこうりゅうききん"]),
 ]
 
+# Stabilization-pass regressions. Each one was a specific defect; the comment
+# is the mechanism, not the symptom, so the test still means something if the
+# rule set changes underneath it.
+STABILIZATION = [
+    # ヶ is not okurigana: it abbreviates 箇 and carries its own reading, so
+    # anchoring it as a kana ate the か. Was いっ + ヶ + げつ.
+    ("一ヶ月", ["いっかげつ"]),
+    # a kana the aligner anchors gets no ruby and is displayed as itself, so
+    # anchoring が to a reading's か printed the wrong mora. Was じがん.
+    ("時間", ["じかん"]),
+    ("失敗", ["しっぱい"]),
+    ("芝生", ["しばふ"]),
+    # JMnedict administrative place names, admitted because their readings are
+    # determined. 新宿区 has one entry; 新宿 has five, so it abstains.
+    ("新宿区", ["しんじゅくく"]),
+    ("東京都", ["とうきょうと"]),
+    ("渋谷区", ["しぶやく"]),
+    ("千代田区", ["ちよだく"]),
+    ("東京都新宿区", ["とうきょうと", "しんじゅくく"]),
+    ("東京都渋谷区", ["とうきょうと", "しぶやく"]),
+    # a larger lexical unit must beat constituent readings
+    ("月曜日", ["げつようび"]),
+    ("今月", ["こんげつ"]),
+    ("来月", ["らいげつ"]),
+    ("日本語能力試験", ["にほんごのうりょくしけん"]),
+    ("国際交流基金", ["こくさいこうりゅうききん"]),
+]
+
+# Surfaces that must render NOTHING, with the reason they are undetermined.
+STABILIZATION_ABSTAIN = [
+    ("月", "つき / げつ / がつ -- polyphonic, and no context resolves it"),
+    ("新宿", "five JMnedict entries: あらじゅく しんしく しんしゅく しんじゅく にいじゅく"),
+    ("一月", "two entries: いちがつ (the month) and ひとつき / いちげつ (a month)"),
+    ("上野", "こうずけ in the dictionary, うえの in running text"),
+    ("居る", "the lexicon lists only おる; a corpus shows いる"),
+]
+
 # Phase 2 abstentions: these MUST render no ruby, because the reading is not
 # determined by anything a shaping engine can see.
 ABSTAIN = [

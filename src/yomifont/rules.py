@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from .alignment import AlignError, RubyGroup, align
 from .conjugation import IRREGULAR, SURU_NEXT, is_inflecting, stem_and_endings
-from .kana import is_kana, is_kanji
+from .kana import is_kana, is_kanji, kata_to_hira
 from .lexicon import LexEntry
 from .safety import Safety, SurfaceVerdict, admissible
 
@@ -356,6 +356,72 @@ def build_rules(
         stats["counts"] = dict(counts)
         stats["examples"] = {k: v for k, v in examples.items()}
     return rules
+
+
+def displayed_reading(seq: str, groups) -> str:
+    """What the reader sees: ruby where there is ruby, surface where there is not."""
+    out: list[str] = []
+    pos = 0
+    for start, length, reading in sorted(groups):
+        out.append(seq[pos:start])
+        out.append(reading)
+        pos = start + length
+    out.append(seq[pos:])
+    return kata_to_hira("".join(out))
+
+
+def drop_corpus_contradicted(rules: list[Rule], observed: dict[str, dict[str, int]],
+                             lexicon_readings: dict[str, set[str]] | None = None,
+                             min_hits: int = 2, stats: dict | None = None) -> list[Rule]:
+    """Turn a rule into an abstention when running text disagrees with it.
+
+    JMdict is authoritative about which readings *exist*; it is not reliable
+    about a listed reading being the *only* one.  It has one entry for 居る
+    reading おる, one for 弾ける reading はじける, one for 時々 reading ときどき
+    -- and a corpus shows いる, ひける and じじ.  Every one of those was
+    classified SAFE_UNIQUE, because the lexicon genuinely does list one
+    reading, and every one produced a wrong reading in evaluation.
+
+    The test is specifically **a reading the lexicon does not list at all**,
+    not merely "a reading other than the one shown".  Those are different
+    things, and conflating them breaks the policy the safety classifier is
+    built on: 日本 is にほん *and* にっぽん, 今日 is きょう *and* こんにち, and
+    in both cases the lexicon lists both inside one entry -- two pronunciations
+    of one lexeme, where picking the prominent one is not an error.  A corpus
+    naturally shows both, so a naive "more than one reading seen" test deletes
+    日本, 今日 and 京都.  What is evidence of a *mistake* is the corpus showing
+    a reading the lexicon never claimed: 居る as いる, 弾ける as ひける,
+    時々 as じじ.  That means the lexicon's uniqueness claim is simply wrong.
+
+    Corpus evidence is used only to *remove* rules; no reading is ever taken
+    from it, so a (surface, reading) pair the lexicon does not have can still
+    never reach the font.
+
+    The corpus slice must be disjoint from the evaluation split.
+    """
+    if not observed:
+        return rules
+    lexicon_readings = lexicon_readings or {}
+    kept: list[Rule] = []
+    dropped = 0
+    for r in rules:
+        counts = observed.get(r.seq) if r.groups else None
+        if counts:
+            shown = displayed_reading(r.seq, r.groups)
+            known = lexicon_readings.get(r.seq, set()) | {shown}
+            attested = {k for k, n in counts.items()
+                        if n >= min_hits and k not in known}
+            if attested:
+                # keep the surface, lose the reading: a block rule so no
+                # shorter rule fires inside it either
+                kept.append(Rule(seq=r.seq, groups=(), safety="AMBIGUOUS",
+                                 origin="corpus_block", src=r.src))
+                dropped += 1
+                continue
+        kept.append(r)
+    if stats is not None:
+        stats["corpus_contradicted"] = dropped
+    return kept
 
 
 def save(rules: list[Rule], path: str) -> None:

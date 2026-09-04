@@ -295,21 +295,52 @@ property of pre-shaping itemisation, not something the font can work around:
 the second run (`ライト）`) carries no evidence that it is a reading at all, so
 any rule that fired on it would also fire on ordinary parenthesised text.
 
-**The failure is safe but not silent.** Nothing is dropped or corrupted — but
-the base is left unprotected, so it also picks up its *automatic* reading. In
-Chrome, `｜宇宙（そら）` renders as the literal markup with **うちゅう** set
-over 宇宙, not そら:
+### The fail-safe
+
+The failure used to be safe but not silent: the base was left unclaimed, so it
+picked up its *automatic* reading and Chrome rendered `｜宇宙（そら）` as the
+literal markup with **うちゅう** over 宇宙 — a correct dictionary reading, but
+not the one the author chose.
+
+That is now suppressed. Blink never shows one rule the whole expression, but
+the itemization matrix ([compatibility.md](compatibility.md)) shows the
+*prefix* `｜BASE（` **is** one run, because Common-script characters join the
+Han run. The font carries a second, weaker family of rules matching that prefix
+alone; they claim the base span and do nothing else — no delimiter is hidden,
+no ruby is emitted — so the expression fails atomically:
 
 ```
-Safari / CoreText / HarfBuzz        Chrome
-        そら                                うちゅう
-        宇宙                         ｜宇宙（そら）
+                       Safari / CoreText / HarfBuzz    Chrome
+                               そら
+｜宇宙（そら）                   宇宙                    ｜宇宙（そら）
 ```
 
-The reading the author asked for is still there in the text, and the reading
-shown is a correct dictionary reading — but it is not the one they chose. An
-author who needs the override to hold everywhere should not rely on the font
-alone in Blink.
+Those rules are last in the lookup. Subtables are tried in order, so wherever
+the full expression matched it has already consumed the span and the fail-safe
+never runs.
+
+**It depends on the left context, and this is measured.** `｜` is
+Script=Common and attaches to the run *before* it, so when an expression
+follows kana the marker is absorbed there and the Han run starts at the base
+without it:
+
+| context | fail-safe |
+|---|---|
+| `｜宇宙（そら）` alone | works |
+| `星｜宇宙（そら）` after kanji | works |
+| ` ｜宇宙（そら）` after a space | works |
+| `）｜宇宙（そら）` after punctuation | works |
+| `の｜宇宙（そら）` after hiragana | **does not** — うちゅう returns |
+| `ア｜宇宙（そら）` after katakana | **does not** |
+| two expressions in a row | **does not** — the first ends in kana |
+
+It is never *worse* than before, and it holds in the contexts where an
+expression starts a phrase. An author who needs the override to hold
+everywhere should not rely on the font alone in Blink.
+
+The ASCII syntax gets no fail-safe at all: `|月(` is SPLIT in Blink where
+`｜月（` is SAME_RUN. That is the one measured behavioural difference between
+the two syntaxes, and it is why the fullwidth form is the recommended one.
 
 ### A correction to the Phase 2 Chrome finding
 

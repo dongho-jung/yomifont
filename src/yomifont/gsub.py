@@ -293,6 +293,38 @@ def build_explicit_lookups(
         st.SubstCount = len(st.SubstLookupRecord)
         subtables.append(st)
 
+    # ---- the Blink fail-safe -------------------------------------------
+    # Blink itemises before shaping and always starts a new run at a Han->Kana
+    # boundary, so it never shows one rule the whole expression. Measured: the
+    # *prefix* ｜BASE（ does survive as one run, because Script=Common
+    # characters join the Han run (tests/integration/itemize_probe.html).
+    #
+    # Without this, Chrome renders ｜宇宙（そら） as visible markup *plus* the
+    # automatic reading うちゅう -- a reading the author explicitly replaced.
+    # These rules claim the base span on the strength of the prefix alone and
+    # do nothing else: no delimiter is hidden and no ruby is emitted, so the
+    # markup stays intact and the expression fails atomically.
+    #
+    # They come last. Subtables are tried in order, so wherever the full
+    # expression matched it has already consumed the span and these never run.
+    for b in range(1, max(b for b, _ in placements) + 1):
+        st = ot.ChainContextSubst()
+        st.Format = 3
+        st.BacktrackGlyphCount = 0
+        st.BacktrackCoverage = []
+        st.LookAheadGlyphCount = 0
+        st.LookAheadCoverage = []
+        st.InputCoverage = [cov["start"]] + [cov["base"]] * b + [cov["open"]]
+        st.InputGlyphCount = len(st.InputCoverage)
+        st.SubstLookupRecord = []
+        for j in range(b):
+            rec = ot.SubstLookupRecord()
+            rec.SequenceIndex = 1 + j
+            rec.LookupListIndex = protect_idx
+            st.SubstLookupRecord.append(rec)
+        st.SubstCount = len(st.SubstLookupRecord)
+        subtables.append(st)
+
     lk = ot.Lookup()
     lk.LookupType = 7
     lk.LookupFlag = 0

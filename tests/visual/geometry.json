@@ -1,0 +1,183 @@
+{
+ "min_gap_em_required": 0.02,
+ "rows": [
+  {
+   "text": "東京都新宿区",
+   "groups": 1,
+   "readings": [
+    "とうきょうとしんじゅくく"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1304
+  },
+  {
+   "text": "東京都渋谷区",
+   "groups": 1,
+   "readings": [
+    "とうきょうとしぶやく"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1973
+  },
+  {
+   "text": "東京都千代田区",
+   "groups": 4,
+   "readings": [
+    "とうきょうとち",
+    "よ",
+    "だ",
+    "く"
+   ],
+   "gaps_em": [
+    0.629,
+    0.602,
+    0.6185
+   ],
+   "min_gap_em": 0.602,
+   "min_kana_gap_em": 0.1973
+  },
+  {
+   "text": "東京大学",
+   "groups": 1,
+   "readings": [
+    "とうきょうだいがく"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1186
+  },
+  {
+   "text": "日本語学校",
+   "groups": 1,
+   "readings": [
+    "にほんごがっこう"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.14
+  },
+  {
+   "text": "京都大学病院",
+   "groups": 1,
+   "readings": [
+    "きょうとだいがくびょういん"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.0717
+  },
+  {
+   "text": "国際交流基金東京",
+   "groups": 1,
+   "readings": [
+    "こくさいこうりゅうききんとうきょう"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1033
+  },
+  {
+   "text": "日本語能力試験",
+   "groups": 1,
+   "readings": [
+    "にほんごのうりょくしけん"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1215
+  },
+  {
+   "text": "国際交流基金",
+   "groups": 1,
+   "readings": [
+    "こくさいこうりゅうききん"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1489
+  },
+  {
+   "text": "私は昨日東京へ行きました。",
+   "groups": 2,
+   "readings": [
+    "きのうとうきょう",
+    "い"
+   ],
+   "gaps_em": [
+    1.3992
+   ],
+   "min_gap_em": 1.3992,
+   "min_kana_gap_em": 0.1386
+  },
+  {
+   "text": "取り戻す",
+   "groups": 2,
+   "readings": [
+    "と",
+    "もど"
+   ],
+   "gaps_em": [
+    1.4171
+   ],
+   "min_gap_em": 1.4171,
+   "min_kana_gap_em": 0.185
+  },
+  {
+   "text": "申し込み",
+   "groups": 2,
+   "readings": [
+    "もう",
+    "こ"
+   ],
+   "gaps_em": [
+    1.4238
+   ],
+   "min_gap_em": 1.4238,
+   "min_kana_gap_em": 0.1819
+  },
+  {
+   "text": "一ヶ月",
+   "groups": 1,
+   "readings": [
+    "いっかげつ"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1415
+  },
+  {
+   "text": "月曜日",
+   "groups": 1,
+   "readings": [
+    "げつようび"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1415
+  },
+  {
+   "text": "新宿区",
+   "groups": 1,
+   "readings": [
+    "しんじゅくく"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1304
+  },
+  {
+   "text": "東京都",
+   "groups": 1,
+   "readings": [
+    "とうきょうと"
+   ],
+   "gaps_em": [],
+   "min_gap_em": null,
+   "min_kana_gap_em": 0.1973
+  }
+ ],
+ "collisions": [],
+ "overlaps": []
+}

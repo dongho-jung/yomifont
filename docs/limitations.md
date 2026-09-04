@@ -50,8 +50,16 @@ disproportionately common ones.
 
 ### Common nouns that are also names
 
-This is the only class that still produces **wrong** readings — 31 of them in
-20,000 sentences:
+This is the only class that still produces **wrong** readings — 21 of them in
+20,000 sentences, down from 31. A JMnedict person-name reading now vetoes a
+JMdict word *when EDRDG has not marked that word common*, which removes ten of
+them (上野 こうずけ, 平野 へいや, 陽子 ようし). The qualifier is necessary:
+without it JMnedict's やまと for 日本 and みやこ for 京都 delete both words.
+What is left is the case where both readings are common — 千歳 せんざい /
+ちとせ, 立花 りっか / たちばな — and nothing visible to the font separates them.
+Abstaining on those too was measured at 8 wrong readings and 73.9 % coverage;
+it also removes 日本 and 京都, which is why it is not the default
+(`safety.PERSON_NAMES_VETO`).
 
 ```
 陽子   ようし (proton)      / ようこ (given name)
@@ -62,20 +70,23 @@ This is the only class that still produces **wrong** readings — 31 of them in
 千歳   せんざい             / ちとせ (place)
 ```
 
-They cannot be abstained away by admitting person names as competitors: doing
-so would let JMnedict veto JMdict, and that deletes 450 EDRDG-common words to
-obscure homograph hamlets (下宿 → したじゅく, 東京 → とうけい). The evidence for
-that decision is in [safety.md](safety.md). The font sees 陽子 and cannot know
-whether the sentence is about physics or about a woman named Yōko.
+The font sees 陽子 and cannot know whether the sentence is about physics or
+about a woman named Yōko. Toponym competitors are still refused outright —
+JMnedict knows a hamlet for nearly every word, and admitting those deletes 450
+EDRDG-common words (下宿 → したじゅく, 東京 → とうけい); the evidence is in
+[safety.md](safety.md).
 
 Full machine-readable list: `data/normalized/error_corpus.json`.
 
 ### Unknown proper nouns
 
-JMnedict integration works and is measured, but it cannot be shipped as one font
-(see below), so the default build has JMdict names only. A name outside the
-lexicon simply gets no ruby — Phase 1 would have decomposed 新宿 into
-あたら + やど; Phase 2 renders nothing.
+Names ending in an administrative suffix (東京都, 新宿区, 渋谷区, every 市 and
+町 and 県) now ship: 32,236 JMnedict pairs whose readings are official and
+determined, costing 2,039 MultipleSubst lookups against a ceiling near 3,000.
+The rest of JMnedict still does not fit — place-like alone needs 6,304 lookups
+— so a name outside that subset gets no ruby. Phase 1 would have decomposed
+新宿区 into あたら + やど + く; it now renders しんじゅくく, and bare 新宿
+renders nothing because JMnedict lists five different readings for it.
 
 ### Okurigana context in Blink
 
@@ -98,8 +109,10 @@ any single first character.
 
 | build | rules | MultipleSubst lookups | compiles |
 |---|---|---|---|
-| core (JMdict) | 300,364 | 1,375 | yes |
-| + JMnedict | 738,030 | **8,547** | **no** |
+| JMdict only | 300,364 | 1,375 | yes |
+| **+ administrative place names** (shipping) | **325,492** | **2,039** | **yes** |
+| + all place-like JMnedict | 481,490 | 6,304 | no |
+| + all JMnedict | 738,849 | 8,694 | no |
 
 `LookupList` offsets are `Offset16` from the list start, capping the total at
 roughly 3,000–3,600 small lookups. Extension lookups solve *subtable* offsets,
@@ -111,23 +124,18 @@ ruby twice.
 
 | | HarfBuzz / CoreText | Blink model |
 |---|---|---|
-| precision (of rendered readings) | **99.942 %** | 99.868 % |
-| wrong readings | **31** | 45 |
-| coverage | 79.07 % | 48.92 % |
-| strict precision (oracle conventions counted as errors) | 96.56 % | — |
+| precision (of rendered readings) | **99.961 %** | see compatibility.md |
+| wrong readings | **21** | |
+| coverage | 78.95 % | |
+| strict precision (oracle conventions counted as errors) | 96.6 % | — |
 
-The gap between 99.94 % and the strict 96.56 % is 1,807 spans where YomiFont and
+The gap between the headline precision and the strict number is ~1,800 spans where YomiFont and
 UniDic disagree but YomiFont is not wrong: the oracle picked a different reading
 of the same lexeme (明日 = あした vs あす), or its tokenizer split a word and
 concatenated per-token readings, losing rendaku (日曜日 → にちようひ). Both
 numbers are reported so the assumption is visible.
 
 ## Fixable engineering, not yet done
-
-**Chrome regression, unresolved.** One controlled measurement showed Chrome 152
-rendering no ruby with the Phase 2 font while rendering it correctly with the
-Phase 1 font. Not reproduced since; see [compatibility.md](compatibility.md).
-This is the highest-priority open item.
 
 **Vertical writing.** Ruby placement is baked in as horizontal offsets, so
 tategaki renders with furigana suppressed rather than scattered.
@@ -136,7 +144,7 @@ tategaki renders with furigana suppressed rather than scattered.
 `nlck` and width features; only `vert`/`vrt2` punctuation forms are carried
 across.
 
-**Font size.** 15.3 MB, and the 60k-rule web build is 5.5 MB. Two separate
+**Font size.** 16.1 MB, and the 60k-rule web build is 5.5 MB. Two separate
 costs stack up here:
 
 * the finer placement grid and three ruby sizes cost 14,486 automatic ruby

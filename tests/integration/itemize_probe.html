@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Shaping-run itemization probe</title>
+<style>
+ body { font-family: -apple-system, system-ui, sans-serif; margin: 20px; max-width: 1200px; }
+ pre { background:#111; color:#0f0; padding:10px; font-size:11px; max-height:340px; overflow:auto; }
+ table { border-collapse: collapse; font-size: 12px; margin: 10px 0; }
+ td, th { border: 1px solid #ddd; padding: 2px 7px; }
+ .y { color:#0a0; font-weight:700 } .n { color:#c00; font-weight:700 }
+ h2 { font-size: 14px; margin: 16px 0 4px; }
+</style>
+</head>
+<body>
+<h1>Shaping-run itemization probe</h1>
+<p>Each case is a character sequence the probe font carries one GSUB rule for.
+The rule replaces the sequence's first glyph with a zero-advance blank, so the
+text measures <strong>one em narrower</strong> if and only if the whole
+sequence reached GSUB in a single shaping run.</p>
+<p>Measured through DOM layout, not canvas: the two disagree in Chrome. Every
+character is in the probe font, so a split can never be font fallback.</p>
+<div id="out">running…</div>
+<pre id="log"></pre>
+<script>
+const FONT_URL = new URLSearchParams(location.search).get("font") || "/dist/Itemize.ttf";
+const SIZE = 100;
+
+function widthOf(text) {
+  const el = document.createElement("span");
+  el.setAttribute("lang", "ja");
+  el.style.cssText = "font-family:ItemizeProbe;font-size:" + SIZE + "px;" +
+    "white-space:pre;display:inline-block;position:absolute;visibility:hidden;" +
+    "letter-spacing:0;word-spacing:0;font-kerning:none;font-variant:none;";
+  el.textContent = text;
+  document.body.appendChild(el);
+  const w = el.getBoundingClientRect().width;
+  el.remove();
+  return w;
+}
+
+// Second channel, because neither engine is reliable on one alone: Chrome's
+// canvas does not apply ccmp while its DOM does, and WebKit's inline box
+// reports the unshaped width while its canvas draws the shaped result. This
+// measures the ink extent, which is what the reader sees either way.
+function inkWidth(text) {
+  const c = document.createElement("canvas");
+  c.width = 1200; c.height = 300;
+  const cx = c.getContext("2d", { willReadFrequently: true });
+  cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height);
+  cx.fillStyle = "#000";
+  cx.font = SIZE + "px ItemizeProbe";
+  cx.textBaseline = "alphabetic";
+  cx.fillText(text, 100, 200);
+  const d = cx.getImageData(0, 0, c.width, c.height).data;
+  let x0 = 1e9, x1 = -1e9;
+  for (let y = 0; y < c.height; y++)
+    for (let x = 0; x < c.width; x++)
+      if (d[(y * c.width + x) * 4] < 128) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+  return x1 < x0 ? 0 : x1 - x0 + 1;
+}
+
+async function run() {
+  const ff = new FontFace("ItemizeProbe", `url("${FONT_URL}?cb=${Date.now()}")`);
+  const diag = { font_url: FONT_URL };
+  try { await ff.load(); document.fonts.add(ff); await document.fonts.ready;
+        diag.loaded = true; }
+  catch (e) { diag.loaded = false; diag.error = String(e && e.message || e); }
+
+  const cases = await (await fetch("/tests/integration/itemize_cases.json")).json();
+  // Baseline: the same string with ccmp switched off. Where an engine refuses
+  // to switch ccmp off, fall back to summing the characters measured singly,
+  // which no rule can match.
+  const results = {};
+  const groups = {};
+  for (const c of cases) {
+    const on = widthOf(c.text);
+    let off = 0;
+    for (const ch of c.text) off += widthOf(ch);
+    const dom = (off - on) > 0.5 * SIZE;
+    // ink of the sequence vs ink of its first character rendered alone: if the
+    // rule fired, the first character contributes nothing
+    const inkAll = inkWidth(c.text), inkFirst = inkWidth(c.text[0]);
+    const inkParts = [...c.text].reduce((a, ch) => a + inkWidth(ch), 0);
+    const ink = inkAll > 0 && (inkParts - inkAll) > 0.5 * SIZE;
+    results[c.label] = { text: c.text, codepoints: c.codepoints, note: c.note,
+                         width_on: +on.toFixed(2), width_parts: +off.toFixed(2),
+                         ink_all: inkAll, ink_parts: inkParts,
+                         dom_same_run: dom, ink_same_run: ink,
+                         same_run: dom || ink };
+    const fam = c.label.split("/")[0];
+    (groups[fam] = groups[fam] || []).push(c.label);
+  }
+
+  let html = "";
+  for (const fam of Object.keys(groups)) {
+    html += `<h2>${fam}</h2><table><tr><th>case</th><th>codepoints</th>`
+          + `<th>parts</th><th>shaped</th><th>one run?</th><th>note</th></tr>`;
+    for (const label of groups[fam]) {
+      const r = results[label];
+      html += `<tr><td>${label.split("/")[1] || label}</td>`
+           + `<td>${r.codepoints.join(" ")}</td>`
+           + `<td>${r.width_parts}</td><td>${r.width_on}</td>`
+           + `<td class="${r.same_run ? "y" : "n"}">${r.same_run ? "SAME_RUN" : "SPLIT"}`
+           + ` <small>(dom ${r.dom_same_run ? "Y" : "n"} / ink ${r.ink_same_run ? "Y" : "n"})</small></td>`
+           + `<td>${r.note}</td></tr>`;
+    }
+    html += "</table>";
+  }
+  document.getElementById("out").innerHTML = html;
+
+  const payload = {
+    diag,
+    engine: ((navigator.userAgent.match(/(Firefox|Edg|Chrome|Version)\/[\d.]+/g) || ["unknown"]).join("_")
+             + "_itemize").replace(/[^A-Za-z0-9._-]/g, "_"),
+    ua: navigator.userAgent, results,
+  };
+  document.getElementById("log").textContent = JSON.stringify(payload, null, 1);
+  window.__probe = payload;
+  try {
+    await fetch("/report", { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    document.title = "REPORTED " + payload.engine;
+  } catch (e) { document.title = "LOCAL ONLY"; }
+}
+run();
+</script>
+</body>
+</html>

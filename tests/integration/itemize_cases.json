@@ -1,0 +1,1576 @@
+[
+ {
+  "label": "transition/Han_Han",
+  "text": "月日",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+6708",
+   "U+65E5"
+  ]
+ },
+ {
+  "label": "transition/Han_Hira",
+  "text": "月つ",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+6708",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "transition/Han_Kata",
+  "text": "月ラ",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+6708",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "transition/Han_Latin",
+  "text": "月A",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+6708",
+   "U+0041"
+  ]
+ },
+ {
+  "label": "transition/Han_Digit",
+  "text": "月1",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+6708",
+   "U+0031"
+  ]
+ },
+ {
+  "label": "transition/Hira_Han",
+  "text": "つ月",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+3064",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "transition/Kata_Han",
+  "text": "ラ月",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+30E9",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "transition/Hira_Kata",
+  "text": "つラ",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+3064",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "transition/Kata_Hira",
+  "text": "ラつ",
+  "note": "bare script transition",
+  "codepoints": [
+   "U+30E9",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "han_sep_kata/none",
+  "text": "月ラ",
+  "note": "direct transition, no separator",
+  "codepoints": [
+   "U+6708",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/none",
+  "text": "月つ",
+  "note": "direct transition, no separator",
+  "codepoints": [
+   "U+6708",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/none",
+  "text": "つラ",
+  "note": "direct transition, no separator",
+  "codepoints": [
+   "U+3064",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_kata/FW_BAR",
+  "text": "月｜ラ",
+  "note": "U+FF5C fullwidth vertical line, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF5C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/FW_BAR",
+  "text": "月｜つ",
+  "note": "U+FF5C fullwidth vertical line, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF5C",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/FW_BAR",
+  "text": "つ｜ラ",
+  "note": "U+FF5C fullwidth vertical line, Common",
+  "codepoints": [
+   "U+3064",
+   "U+FF5C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/FW_BAR",
+  "text": "｜月｜ラ｜",
+  "note": "U+FF5C fullwidth vertical line, Common",
+  "codepoints": [
+   "U+FF5C",
+   "U+6708",
+   "U+FF5C",
+   "U+30E9",
+   "U+FF5C"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ASCII_BAR",
+  "text": "月|ラ",
+  "note": "U+007C vertical line, Common",
+  "codepoints": [
+   "U+6708",
+   "U+007C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ASCII_BAR",
+  "text": "月|つ",
+  "note": "U+007C vertical line, Common",
+  "codepoints": [
+   "U+6708",
+   "U+007C",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ASCII_BAR",
+  "text": "つ|ラ",
+  "note": "U+007C vertical line, Common",
+  "codepoints": [
+   "U+3064",
+   "U+007C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ASCII_BAR",
+  "text": "|月|ラ|",
+  "note": "U+007C vertical line, Common",
+  "codepoints": [
+   "U+007C",
+   "U+6708",
+   "U+007C",
+   "U+30E9",
+   "U+007C"
+  ]
+ },
+ {
+  "label": "han_sep_kata/FW_PAREN",
+  "text": "月（ラ",
+  "note": "U+FF08 fullwidth left paren, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF08",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/FW_PAREN",
+  "text": "月（つ",
+  "note": "U+FF08 fullwidth left paren, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF08",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/FW_PAREN",
+  "text": "つ（ラ",
+  "note": "U+FF08 fullwidth left paren, Common",
+  "codepoints": [
+   "U+3064",
+   "U+FF08",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/FW_PAREN",
+  "text": "（月（ラ（",
+  "note": "U+FF08 fullwidth left paren, Common",
+  "codepoints": [
+   "U+FF08",
+   "U+6708",
+   "U+FF08",
+   "U+30E9",
+   "U+FF08"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ASCII_PAREN",
+  "text": "月(ラ",
+  "note": "U+0028 left paren, Common",
+  "codepoints": [
+   "U+6708",
+   "U+0028",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ASCII_PAREN",
+  "text": "月(つ",
+  "note": "U+0028 left paren, Common",
+  "codepoints": [
+   "U+6708",
+   "U+0028",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ASCII_PAREN",
+  "text": "つ(ラ",
+  "note": "U+0028 left paren, Common",
+  "codepoints": [
+   "U+3064",
+   "U+0028",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ASCII_PAREN",
+  "text": "(月(ラ(",
+  "note": "U+0028 left paren, Common",
+  "codepoints": [
+   "U+0028",
+   "U+6708",
+   "U+0028",
+   "U+30E9",
+   "U+0028"
+  ]
+ },
+ {
+  "label": "han_sep_kata/FW_COLON",
+  "text": "月：ラ",
+  "note": "U+FF1A fullwidth colon, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF1A",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/FW_COLON",
+  "text": "月：つ",
+  "note": "U+FF1A fullwidth colon, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF1A",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/FW_COLON",
+  "text": "つ：ラ",
+  "note": "U+FF1A fullwidth colon, Common",
+  "codepoints": [
+   "U+3064",
+   "U+FF1A",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/FW_COLON",
+  "text": "：月：ラ：",
+  "note": "U+FF1A fullwidth colon, Common",
+  "codepoints": [
+   "U+FF1A",
+   "U+6708",
+   "U+FF1A",
+   "U+30E9",
+   "U+FF1A"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ASCII_COLON",
+  "text": "月:ラ",
+  "note": "U+003A colon, Common",
+  "codepoints": [
+   "U+6708",
+   "U+003A",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ASCII_COLON",
+  "text": "月:つ",
+  "note": "U+003A colon, Common",
+  "codepoints": [
+   "U+6708",
+   "U+003A",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ASCII_COLON",
+  "text": "つ:ラ",
+  "note": "U+003A colon, Common",
+  "codepoints": [
+   "U+3064",
+   "U+003A",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ASCII_COLON",
+  "text": ":月:ラ:",
+  "note": "U+003A colon, Common",
+  "codepoints": [
+   "U+003A",
+   "U+6708",
+   "U+003A",
+   "U+30E9",
+   "U+003A"
+  ]
+ },
+ {
+  "label": "han_sep_kata/FW_SLASH",
+  "text": "月／ラ",
+  "note": "U+FF0F fullwidth solidus, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF0F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/FW_SLASH",
+  "text": "月／つ",
+  "note": "U+FF0F fullwidth solidus, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF0F",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/FW_SLASH",
+  "text": "つ／ラ",
+  "note": "U+FF0F fullwidth solidus, Common",
+  "codepoints": [
+   "U+3064",
+   "U+FF0F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/FW_SLASH",
+  "text": "／月／ラ／",
+  "note": "U+FF0F fullwidth solidus, Common",
+  "codepoints": [
+   "U+FF0F",
+   "U+6708",
+   "U+FF0F",
+   "U+30E9",
+   "U+FF0F"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ASCII_SLASH",
+  "text": "月/ラ",
+  "note": "U+002F solidus, Common",
+  "codepoints": [
+   "U+6708",
+   "U+002F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ASCII_SLASH",
+  "text": "月/つ",
+  "note": "U+002F solidus, Common",
+  "codepoints": [
+   "U+6708",
+   "U+002F",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ASCII_SLASH",
+  "text": "つ/ラ",
+  "note": "U+002F solidus, Common",
+  "codepoints": [
+   "U+3064",
+   "U+002F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ASCII_SLASH",
+  "text": "/月/ラ/",
+  "note": "U+002F solidus, Common",
+  "codepoints": [
+   "U+002F",
+   "U+6708",
+   "U+002F",
+   "U+30E9",
+   "U+002F"
+  ]
+ },
+ {
+  "label": "han_sep_kata/FW_BRACKET",
+  "text": "月［ラ",
+  "note": "U+FF3B fullwidth left square bracket, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF3B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/FW_BRACKET",
+  "text": "月［つ",
+  "note": "U+FF3B fullwidth left square bracket, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF3B",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/FW_BRACKET",
+  "text": "つ［ラ",
+  "note": "U+FF3B fullwidth left square bracket, Common",
+  "codepoints": [
+   "U+3064",
+   "U+FF3B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/FW_BRACKET",
+  "text": "［月［ラ［",
+  "note": "U+FF3B fullwidth left square bracket, Common",
+  "codepoints": [
+   "U+FF3B",
+   "U+6708",
+   "U+FF3B",
+   "U+30E9",
+   "U+FF3B"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ASCII_BRACK",
+  "text": "月[ラ",
+  "note": "U+005B left square bracket, Common",
+  "codepoints": [
+   "U+6708",
+   "U+005B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ASCII_BRACK",
+  "text": "月[つ",
+  "note": "U+005B left square bracket, Common",
+  "codepoints": [
+   "U+6708",
+   "U+005B",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ASCII_BRACK",
+  "text": "つ[ラ",
+  "note": "U+005B left square bracket, Common",
+  "codepoints": [
+   "U+3064",
+   "U+005B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ASCII_BRACK",
+  "text": "[月[ラ[",
+  "note": "U+005B left square bracket, Common",
+  "codepoints": [
+   "U+005B",
+   "U+6708",
+   "U+005B",
+   "U+30E9",
+   "U+005B"
+  ]
+ },
+ {
+  "label": "han_sep_kata/FW_BRACE",
+  "text": "月｛ラ",
+  "note": "U+FF5B fullwidth left curly, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF5B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/FW_BRACE",
+  "text": "月｛つ",
+  "note": "U+FF5B fullwidth left curly, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF5B",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/FW_BRACE",
+  "text": "つ｛ラ",
+  "note": "U+FF5B fullwidth left curly, Common",
+  "codepoints": [
+   "U+3064",
+   "U+FF5B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/FW_BRACE",
+  "text": "｛月｛ラ｛",
+  "note": "U+FF5B fullwidth left curly, Common",
+  "codepoints": [
+   "U+FF5B",
+   "U+6708",
+   "U+FF5B",
+   "U+30E9",
+   "U+FF5B"
+  ]
+ },
+ {
+  "label": "han_sep_kata/FW_LT",
+  "text": "月＜ラ",
+  "note": "U+FF1C fullwidth less-than, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF1C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/FW_LT",
+  "text": "月＜つ",
+  "note": "U+FF1C fullwidth less-than, Common",
+  "codepoints": [
+   "U+6708",
+   "U+FF1C",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/FW_LT",
+  "text": "つ＜ラ",
+  "note": "U+FF1C fullwidth less-than, Common",
+  "codepoints": [
+   "U+3064",
+   "U+FF1C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/FW_LT",
+  "text": "＜月＜ラ＜",
+  "note": "U+FF1C fullwidth less-than, Common",
+  "codepoints": [
+   "U+FF1C",
+   "U+6708",
+   "U+FF1C",
+   "U+30E9",
+   "U+FF1C"
+  ]
+ },
+ {
+  "label": "han_sep_kata/CJK_COMMA",
+  "text": "月、ラ",
+  "note": "U+3001 ideographic comma, Common",
+  "codepoints": [
+   "U+6708",
+   "U+3001",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/CJK_COMMA",
+  "text": "月、つ",
+  "note": "U+3001 ideographic comma, Common",
+  "codepoints": [
+   "U+6708",
+   "U+3001",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/CJK_COMMA",
+  "text": "つ、ラ",
+  "note": "U+3001 ideographic comma, Common",
+  "codepoints": [
+   "U+3064",
+   "U+3001",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/CJK_COMMA",
+  "text": "、月、ラ、",
+  "note": "U+3001 ideographic comma, Common",
+  "codepoints": [
+   "U+3001",
+   "U+6708",
+   "U+3001",
+   "U+30E9",
+   "U+3001"
+  ]
+ },
+ {
+  "label": "han_sep_kata/MIDDLE_DOT",
+  "text": "月・ラ",
+  "note": "U+30FB katakana middle dot, Common",
+  "codepoints": [
+   "U+6708",
+   "U+30FB",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/MIDDLE_DOT",
+  "text": "月・つ",
+  "note": "U+30FB katakana middle dot, Common",
+  "codepoints": [
+   "U+6708",
+   "U+30FB",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/MIDDLE_DOT",
+  "text": "つ・ラ",
+  "note": "U+30FB katakana middle dot, Common",
+  "codepoints": [
+   "U+3064",
+   "U+30FB",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/MIDDLE_DOT",
+  "text": "・月・ラ・",
+  "note": "U+30FB katakana middle dot, Common",
+  "codepoints": [
+   "U+30FB",
+   "U+6708",
+   "U+30FB",
+   "U+30E9",
+   "U+30FB"
+  ]
+ },
+ {
+  "label": "han_sep_kata/PROLONG",
+  "text": "月ーラ",
+  "note": "U+30FC prolonged sound mark, Common",
+  "codepoints": [
+   "U+6708",
+   "U+30FC",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/PROLONG",
+  "text": "月ーつ",
+  "note": "U+30FC prolonged sound mark, Common",
+  "codepoints": [
+   "U+6708",
+   "U+30FC",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/PROLONG",
+  "text": "つーラ",
+  "note": "U+30FC prolonged sound mark, Common",
+  "codepoints": [
+   "U+3064",
+   "U+30FC",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/PROLONG",
+  "text": "ー月ーラー",
+  "note": "U+30FC prolonged sound mark, Common",
+  "codepoints": [
+   "U+30FC",
+   "U+6708",
+   "U+30FC",
+   "U+30E9",
+   "U+30FC"
+  ]
+ },
+ {
+  "label": "han_sep_kata/IDEO_SPACE",
+  "text": "月　ラ",
+  "note": "U+3000 ideographic space, Common",
+  "codepoints": [
+   "U+6708",
+   "U+3000",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/IDEO_SPACE",
+  "text": "月　つ",
+  "note": "U+3000 ideographic space, Common",
+  "codepoints": [
+   "U+6708",
+   "U+3000",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/IDEO_SPACE",
+  "text": "つ　ラ",
+  "note": "U+3000 ideographic space, Common",
+  "codepoints": [
+   "U+3064",
+   "U+3000",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/IDEO_SPACE",
+  "text": "　月　ラ　",
+  "note": "U+3000 ideographic space, Common",
+  "codepoints": [
+   "U+3000",
+   "U+6708",
+   "U+3000",
+   "U+30E9",
+   "U+3000"
+  ]
+ },
+ {
+  "label": "han_sep_kata/SPACE",
+  "text": "月 ラ",
+  "note": "U+0020 space, Common",
+  "codepoints": [
+   "U+6708",
+   "U+0020",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/SPACE",
+  "text": "月 つ",
+  "note": "U+0020 space, Common",
+  "codepoints": [
+   "U+6708",
+   "U+0020",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/SPACE",
+  "text": "つ ラ",
+  "note": "U+0020 space, Common",
+  "codepoints": [
+   "U+3064",
+   "U+0020",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/SPACE",
+  "text": " 月 ラ ",
+  "note": "U+0020 space, Common",
+  "codepoints": [
+   "U+0020",
+   "U+6708",
+   "U+0020",
+   "U+30E9",
+   "U+0020"
+  ]
+ },
+ {
+  "label": "han_sep_kata/LOWLINE",
+  "text": "月_ラ",
+  "note": "U+005F low line, Common",
+  "codepoints": [
+   "U+6708",
+   "U+005F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/LOWLINE",
+  "text": "月_つ",
+  "note": "U+005F low line, Common",
+  "codepoints": [
+   "U+6708",
+   "U+005F",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/LOWLINE",
+  "text": "つ_ラ",
+  "note": "U+005F low line, Common",
+  "codepoints": [
+   "U+3064",
+   "U+005F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/LOWLINE",
+  "text": "_月_ラ_",
+  "note": "U+005F low line, Common",
+  "codepoints": [
+   "U+005F",
+   "U+6708",
+   "U+005F",
+   "U+30E9",
+   "U+005F"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ZWSP",
+  "text": "月​ラ",
+  "note": "U+200B zero width space, Common",
+  "codepoints": [
+   "U+6708",
+   "U+200B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ZWSP",
+  "text": "月​つ",
+  "note": "U+200B zero width space, Common",
+  "codepoints": [
+   "U+6708",
+   "U+200B",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ZWSP",
+  "text": "つ​ラ",
+  "note": "U+200B zero width space, Common",
+  "codepoints": [
+   "U+3064",
+   "U+200B",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ZWSP",
+  "text": "​月​ラ​",
+  "note": "U+200B zero width space, Common",
+  "codepoints": [
+   "U+200B",
+   "U+6708",
+   "U+200B",
+   "U+30E9",
+   "U+200B"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ZWNJ",
+  "text": "月‌ラ",
+  "note": "U+200C zero width non-joiner, Common",
+  "codepoints": [
+   "U+6708",
+   "U+200C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ZWNJ",
+  "text": "月‌つ",
+  "note": "U+200C zero width non-joiner, Common",
+  "codepoints": [
+   "U+6708",
+   "U+200C",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ZWNJ",
+  "text": "つ‌ラ",
+  "note": "U+200C zero width non-joiner, Common",
+  "codepoints": [
+   "U+3064",
+   "U+200C",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ZWNJ",
+  "text": "‌月‌ラ‌",
+  "note": "U+200C zero width non-joiner, Common",
+  "codepoints": [
+   "U+200C",
+   "U+6708",
+   "U+200C",
+   "U+30E9",
+   "U+200C"
+  ]
+ },
+ {
+  "label": "han_sep_kata/ZWJ",
+  "text": "月‍ラ",
+  "note": "U+200D zero width joiner, Common",
+  "codepoints": [
+   "U+6708",
+   "U+200D",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/ZWJ",
+  "text": "月‍つ",
+  "note": "U+200D zero width joiner, Common",
+  "codepoints": [
+   "U+6708",
+   "U+200D",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/ZWJ",
+  "text": "つ‍ラ",
+  "note": "U+200D zero width joiner, Common",
+  "codepoints": [
+   "U+3064",
+   "U+200D",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/ZWJ",
+  "text": "‍月‍ラ‍",
+  "note": "U+200D zero width joiner, Common",
+  "codepoints": [
+   "U+200D",
+   "U+6708",
+   "U+200D",
+   "U+30E9",
+   "U+200D"
+  ]
+ },
+ {
+  "label": "han_sep_kata/WORD_JOINER",
+  "text": "月⁠ラ",
+  "note": "U+2060 word joiner, Common",
+  "codepoints": [
+   "U+6708",
+   "U+2060",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/WORD_JOINER",
+  "text": "月⁠つ",
+  "note": "U+2060 word joiner, Common",
+  "codepoints": [
+   "U+6708",
+   "U+2060",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/WORD_JOINER",
+  "text": "つ⁠ラ",
+  "note": "U+2060 word joiner, Common",
+  "codepoints": [
+   "U+3064",
+   "U+2060",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/WORD_JOINER",
+  "text": "⁠月⁠ラ⁠",
+  "note": "U+2060 word joiner, Common",
+  "codepoints": [
+   "U+2060",
+   "U+6708",
+   "U+2060",
+   "U+30E9",
+   "U+2060"
+  ]
+ },
+ {
+  "label": "han_sep_kata/CGJ",
+  "text": "月͏ラ",
+  "note": "U+034F combining grapheme joiner, Inherited",
+  "codepoints": [
+   "U+6708",
+   "U+034F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/CGJ",
+  "text": "月͏つ",
+  "note": "U+034F combining grapheme joiner, Inherited",
+  "codepoints": [
+   "U+6708",
+   "U+034F",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/CGJ",
+  "text": "つ͏ラ",
+  "note": "U+034F combining grapheme joiner, Inherited",
+  "codepoints": [
+   "U+3064",
+   "U+034F",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/CGJ",
+  "text": "͏月͏ラ͏",
+  "note": "U+034F combining grapheme joiner, Inherited",
+  "codepoints": [
+   "U+034F",
+   "U+6708",
+   "U+034F",
+   "U+30E9",
+   "U+034F"
+  ]
+ },
+ {
+  "label": "han_sep_kata/VS1",
+  "text": "月︀ラ",
+  "note": "U+FE00 variation selector 1, Inherited",
+  "codepoints": [
+   "U+6708",
+   "U+FE00",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/VS1",
+  "text": "月︀つ",
+  "note": "U+FE00 variation selector 1, Inherited",
+  "codepoints": [
+   "U+6708",
+   "U+FE00",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/VS1",
+  "text": "つ︀ラ",
+  "note": "U+FE00 variation selector 1, Inherited",
+  "codepoints": [
+   "U+3064",
+   "U+FE00",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/VS1",
+  "text": "︀月︀ラ︀",
+  "note": "U+FE00 variation selector 1, Inherited",
+  "codepoints": [
+   "U+FE00",
+   "U+6708",
+   "U+FE00",
+   "U+30E9",
+   "U+FE00"
+  ]
+ },
+ {
+  "label": "han_sep_kata/VS15",
+  "text": "月︎ラ",
+  "note": "U+FE0E text presentation selector, Inherited",
+  "codepoints": [
+   "U+6708",
+   "U+FE0E",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/VS15",
+  "text": "月︎つ",
+  "note": "U+FE0E text presentation selector, Inherited",
+  "codepoints": [
+   "U+6708",
+   "U+FE0E",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/VS15",
+  "text": "つ︎ラ",
+  "note": "U+FE0E text presentation selector, Inherited",
+  "codepoints": [
+   "U+3064",
+   "U+FE0E",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/VS15",
+  "text": "︎月︎ラ︎",
+  "note": "U+FE0E text presentation selector, Inherited",
+  "codepoints": [
+   "U+FE0E",
+   "U+6708",
+   "U+FE0E",
+   "U+30E9",
+   "U+FE0E"
+  ]
+ },
+ {
+  "label": "han_sep_kata/PUA_E000",
+  "text": "月ラ",
+  "note": "U+E000 private use, Unknown",
+  "codepoints": [
+   "U+6708",
+   "U+E000",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/PUA_E000",
+  "text": "月つ",
+  "note": "U+E000 private use, Unknown",
+  "codepoints": [
+   "U+6708",
+   "U+E000",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/PUA_E000",
+  "text": "つラ",
+  "note": "U+E000 private use, Unknown",
+  "codepoints": [
+   "U+3064",
+   "U+E000",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/PUA_E000",
+  "text": "月ラ",
+  "note": "U+E000 private use, Unknown",
+  "codepoints": [
+   "U+E000",
+   "U+6708",
+   "U+E000",
+   "U+30E9",
+   "U+E000"
+  ]
+ },
+ {
+  "label": "han_sep_kata/PUA_F8FF",
+  "text": "月ラ",
+  "note": "U+F8FF private use, Unknown",
+  "codepoints": [
+   "U+6708",
+   "U+F8FF",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "han_sep_hira/PUA_F8FF",
+  "text": "月つ",
+  "note": "U+F8FF private use, Unknown",
+  "codepoints": [
+   "U+6708",
+   "U+F8FF",
+   "U+3064"
+  ]
+ },
+ {
+  "label": "hira_sep_kata/PUA_F8FF",
+  "text": "つラ",
+  "note": "U+F8FF private use, Unknown",
+  "codepoints": [
+   "U+3064",
+   "U+F8FF",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "expr/PUA_F8FF",
+  "text": "月ラ",
+  "note": "U+F8FF private use, Unknown",
+  "codepoints": [
+   "U+F8FF",
+   "U+6708",
+   "U+F8FF",
+   "U+30E9",
+   "U+F8FF"
+  ]
+ },
+ {
+  "label": "prefix/FW_BAR",
+  "text": "｜月｜",
+  "note": "U+FF5C fullwidth vertical line, Common",
+  "codepoints": [
+   "U+FF5C",
+   "U+6708",
+   "U+FF5C"
+  ]
+ },
+ {
+  "label": "prefix/ASCII_BAR",
+  "text": "|月|",
+  "note": "U+007C vertical line, Common",
+  "codepoints": [
+   "U+007C",
+   "U+6708",
+   "U+007C"
+  ]
+ },
+ {
+  "label": "prefix/FW_PAREN",
+  "text": "（月（",
+  "note": "U+FF08 fullwidth left paren, Common",
+  "codepoints": [
+   "U+FF08",
+   "U+6708",
+   "U+FF08"
+  ]
+ },
+ {
+  "label": "prefix/ASCII_PAREN",
+  "text": "(月(",
+  "note": "U+0028 left paren, Common",
+  "codepoints": [
+   "U+0028",
+   "U+6708",
+   "U+0028"
+  ]
+ },
+ {
+  "label": "prefix/FW_COLON",
+  "text": "：月：",
+  "note": "U+FF1A fullwidth colon, Common",
+  "codepoints": [
+   "U+FF1A",
+   "U+6708",
+   "U+FF1A"
+  ]
+ },
+ {
+  "label": "prefix/ASCII_COLON",
+  "text": ":月:",
+  "note": "U+003A colon, Common",
+  "codepoints": [
+   "U+003A",
+   "U+6708",
+   "U+003A"
+  ]
+ },
+ {
+  "label": "prefix/FW_SLASH",
+  "text": "／月／",
+  "note": "U+FF0F fullwidth solidus, Common",
+  "codepoints": [
+   "U+FF0F",
+   "U+6708",
+   "U+FF0F"
+  ]
+ },
+ {
+  "label": "prefix/ASCII_SLASH",
+  "text": "/月/",
+  "note": "U+002F solidus, Common",
+  "codepoints": [
+   "U+002F",
+   "U+6708",
+   "U+002F"
+  ]
+ },
+ {
+  "label": "prefix/FW_BRACKET",
+  "text": "［月［",
+  "note": "U+FF3B fullwidth left square bracket, Common",
+  "codepoints": [
+   "U+FF3B",
+   "U+6708",
+   "U+FF3B"
+  ]
+ },
+ {
+  "label": "prefix/ASCII_BRACK",
+  "text": "[月[",
+  "note": "U+005B left square bracket, Common",
+  "codepoints": [
+   "U+005B",
+   "U+6708",
+   "U+005B"
+  ]
+ },
+ {
+  "label": "prefix/FW_BRACE",
+  "text": "｛月｛",
+  "note": "U+FF5B fullwidth left curly, Common",
+  "codepoints": [
+   "U+FF5B",
+   "U+6708",
+   "U+FF5B"
+  ]
+ },
+ {
+  "label": "prefix/FW_LT",
+  "text": "＜月＜",
+  "note": "U+FF1C fullwidth less-than, Common",
+  "codepoints": [
+   "U+FF1C",
+   "U+6708",
+   "U+FF1C"
+  ]
+ },
+ {
+  "label": "prefix/CJK_COMMA",
+  "text": "、月、",
+  "note": "U+3001 ideographic comma, Common",
+  "codepoints": [
+   "U+3001",
+   "U+6708",
+   "U+3001"
+  ]
+ },
+ {
+  "label": "prefix/MIDDLE_DOT",
+  "text": "・月・",
+  "note": "U+30FB katakana middle dot, Common",
+  "codepoints": [
+   "U+30FB",
+   "U+6708",
+   "U+30FB"
+  ]
+ },
+ {
+  "label": "prefix/PROLONG",
+  "text": "ー月ー",
+  "note": "U+30FC prolonged sound mark, Common",
+  "codepoints": [
+   "U+30FC",
+   "U+6708",
+   "U+30FC"
+  ]
+ },
+ {
+  "label": "prefix/IDEO_SPACE",
+  "text": "　月　",
+  "note": "U+3000 ideographic space, Common",
+  "codepoints": [
+   "U+3000",
+   "U+6708",
+   "U+3000"
+  ]
+ },
+ {
+  "label": "prefix/SPACE",
+  "text": " 月 ",
+  "note": "U+0020 space, Common",
+  "codepoints": [
+   "U+0020",
+   "U+6708",
+   "U+0020"
+  ]
+ },
+ {
+  "label": "prefix/LOWLINE",
+  "text": "_月_",
+  "note": "U+005F low line, Common",
+  "codepoints": [
+   "U+005F",
+   "U+6708",
+   "U+005F"
+  ]
+ },
+ {
+  "label": "prefix/ZWSP",
+  "text": "​月​",
+  "note": "U+200B zero width space, Common",
+  "codepoints": [
+   "U+200B",
+   "U+6708",
+   "U+200B"
+  ]
+ },
+ {
+  "label": "prefix/ZWNJ",
+  "text": "‌月‌",
+  "note": "U+200C zero width non-joiner, Common",
+  "codepoints": [
+   "U+200C",
+   "U+6708",
+   "U+200C"
+  ]
+ },
+ {
+  "label": "prefix/ZWJ",
+  "text": "‍月‍",
+  "note": "U+200D zero width joiner, Common",
+  "codepoints": [
+   "U+200D",
+   "U+6708",
+   "U+200D"
+  ]
+ },
+ {
+  "label": "prefix/WORD_JOINER",
+  "text": "⁠月⁠",
+  "note": "U+2060 word joiner, Common",
+  "codepoints": [
+   "U+2060",
+   "U+6708",
+   "U+2060"
+  ]
+ },
+ {
+  "label": "prefix/CGJ",
+  "text": "͏月͏",
+  "note": "U+034F combining grapheme joiner, Inherited",
+  "codepoints": [
+   "U+034F",
+   "U+6708",
+   "U+034F"
+  ]
+ },
+ {
+  "label": "prefix/VS1",
+  "text": "︀月︀",
+  "note": "U+FE00 variation selector 1, Inherited",
+  "codepoints": [
+   "U+FE00",
+   "U+6708",
+   "U+FE00"
+  ]
+ },
+ {
+  "label": "prefix/VS15",
+  "text": "︎月︎",
+  "note": "U+FE0E text presentation selector, Inherited",
+  "codepoints": [
+   "U+FE0E",
+   "U+6708",
+   "U+FE0E"
+  ]
+ },
+ {
+  "label": "prefix/PUA_E000",
+  "text": "月",
+  "note": "U+E000 private use, Unknown",
+  "codepoints": [
+   "U+E000",
+   "U+6708",
+   "U+E000"
+  ]
+ },
+ {
+  "label": "prefix/PUA_F8FF",
+  "text": "月",
+  "note": "U+F8FF private use, Unknown",
+  "codepoints": [
+   "U+F8FF",
+   "U+6708",
+   "U+F8FF"
+  ]
+ },
+ {
+  "label": "prefix/FW_BAR_2han",
+  "text": "｜月日（",
+  "note": "marker + 2 Han + open",
+  "codepoints": [
+   "U+FF5C",
+   "U+6708",
+   "U+65E5",
+   "U+FF08"
+  ]
+ },
+ {
+  "label": "prefix/bar_open_only",
+  "text": "｜月（",
+  "note": "marker + Han + open",
+  "codepoints": [
+   "U+FF5C",
+   "U+6708",
+   "U+FF08"
+  ]
+ },
+ {
+  "label": "prefix/ascii_bar_open",
+  "text": "|月(",
+  "note": "ascii marker + Han + open",
+  "codepoints": [
+   "U+007C",
+   "U+6708",
+   "U+0028"
+  ]
+ },
+ {
+  "label": "pua/han_pua3",
+  "text": "月",
+  "note": "Han + 3 PUA",
+  "codepoints": [
+   "U+6708",
+   "U+E001",
+   "U+E002",
+   "U+E003"
+  ]
+ },
+ {
+  "label": "pua/han_pua_kata",
+  "text": "月ラ",
+  "note": "Han + PUA + Katakana",
+  "codepoints": [
+   "U+6708",
+   "U+E001",
+   "U+30E9"
+  ]
+ },
+ {
+  "label": "pua/pua_han_pua",
+  "text": "月",
+  "note": "PUA + Han + PUA",
+  "codepoints": [
+   "U+E001",
+   "U+6708",
+   "U+E002"
+  ]
+ }
+]

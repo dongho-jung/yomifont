@@ -66,27 +66,28 @@ class RubyGroup:
 
 
 def _kana_eq(surface_ch: str, reading_ch: str, first_in_run: bool, prev_reading: str) -> bool:
-    """Can this surface kana be spelled as this reading kana?"""
+    """Can this surface kana stand where this reading kana is?
+
+    The test has to be much stricter than "could these two be the same mora",
+    because a kana the aligner anchors is a kana that gets **no ruby** -- the
+    reader sees the surface character itself.  So anchoring 「が」 to a reading
+    's 「か」 does not record a rendaku, it *renders the wrong mora*:
+
+        失敗は成功のもと   しっぱいは...   anchoring は≡ぱ showed しっはい
+        時間が経つ         じかんが...     anchoring が≡か showed じがん
+        となりの芝生は青い しばふは...     anchoring は≡ば showed しはふ
+
+    Every one of those is a wrong reading rather than an abstention. So the
+    only equivalences allowed are ones where both spellings are *correct to
+    read*: identity, and the 長音符 written out as its vowel.
+    """
     if surface_ch == reading_ch:
         return True
-    # rendaku: the surface keeps the plain kana, the reading is voiced
-    if VOICED.get(surface_ch) == reading_ch or SEMI_VOICED.get(surface_ch) == reading_ch:
-        return True
-    # the reverse (surface voiced, reading plain) shows up in variant spellings
-    if UNVOICED.get(surface_ch) == reading_ch:
-        return True
-    # 促音便: reading has っ where the surface kana is a plain k/t row mora
-    if reading_ch == "っ" and surface_ch in GEMINATION_SOURCES:
-        return True
-    if surface_ch == "っ" and reading_ch in GEMINATION_SOURCES:
-        return True
-    # 長音: ー in the surface spelled out as a vowel in the reading
+    # 長音: ー in one spelling, the vowel written out in the other. Both are
+    # orthographically correct in that position, so either can be displayed.
     if surface_ch == "ー" and prev_reading and VOWEL_OF.get(prev_reading) == reading_ch:
         return True
     if reading_ch == "ー" and prev_reading and VOWEL_OF.get(prev_reading) == surface_ch:
-        return True
-    # ヶ / ヵ as a counter or place-name connective: 一ヶ月 -> いっかげつ
-    if surface_ch in "ゖゕ" and reading_ch in "かがこ":
         return True
     return False
 
@@ -97,7 +98,18 @@ def _kana_eq(surface_ch: str, reading_ch: str, first_in_run: bool, prev_reading:
 _UNUSABLE = set("・=＝　 、。「」『』（）()［］【】〜~-−・／/,，.．!！?？:：;；'\"")
 
 
+# ヶ and ヵ are kana by codepoint but not by function: they are abbreviations of
+# 箇 and carry a reading of their own -- か in 一ヶ月 いっかげつ, が in 関ヶ原
+# せきがはら, こ in 一ヶ月's variants.  Classifying them as kana makes the
+# aligner anchor them, which silently eats that mora: 一ヶ月 compiled to
+# ((0,1,'いっ'), (2,1,'げつ')) and rendered いっ + ヶ + げつ, with the か gone.
+# They are ruby-bearing bases.
+COUNTER_KE = set("ヶヵゖゕ")
+
+
 def _kind(ch: str) -> str:
+    if ch in COUNTER_KE:
+        return "base"
     if is_kana(ch):
         return "kana"
     if is_kanji(ch):

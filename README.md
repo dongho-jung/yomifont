@@ -43,14 +43,14 @@ engine can see determines their reading.
 
 | | |
 |---|---|
-| **Precision** — of the readings it renders, how many are right | **99.94 %** |
-| **Wrong readings** in 20,000 held-out sentences | **31** |
-| Coverage — kanji tokens that receive ruby | 79.1 % |
+| **Precision** — of the readings it renders, how many are right | **99.96 %** |
+| **Wrong readings** in 20,000 held-out sentences | **21** |
+| Coverage — kanji tokens that receive ruby | 78.9 % |
 | Coverage under Blink's script segmentation | 48.9 % (precision 99.87 %) |
-| Safe lexical rules | 300,364 |
+| Safe lexical rules | 325,492 (incl. administrative place names) |
 | Explicit-ruby rules (no vocabulary at all) | 128 |
-| Total glyphs / ruby glyphs | 63,053 / 46,877 |
-| Font size | 15.3 MB (GSUB 8.9 MB) |
+| Total glyphs / ruby glyphs | 63,053 / 47,302 |
+| Font size | 16.1 MB (GSUB 10.0 MB) |
 | GPOS table | **none — the font has no GPOS at all** |
 | OpenType Sanitizer (what Chrome and Firefox require) | PASS |
 
@@ -118,8 +118,11 @@ left visibly unchanged, never partly transformed.
 
 The catch is Chrome: Blink itemises text into script runs before shaping, so
 an expression that crosses a Han↔Kana boundary is never seen whole and gets no
-ruby. Kana bases work; kanji bases do not. Safari, CoreText and HarfBuzz render
-all cases. [docs/explicit-ruby.md](docs/explicit-ruby.md) has the per-engine
+ruby. Kana bases work; kanji bases do not — measured across 30 candidate
+separators including joiners, variation selectors and PUA, none of which
+bridges it. Chrome does at least suppress the automatic reading on an annotated
+base, so it shows the markup rather than a reading the author replaced. Safari,
+CoreText and HarfBuzz render all cases. [docs/explicit-ruby.md](docs/explicit-ruby.md) has the per-engine
 measurements and the reasoning behind the limits.
 
 ## Typography
@@ -149,19 +152,20 @@ make venv          # virtualenv + dependencies
 make data          # fetch JMdict, JMnedict, Noto Sans JP, Tatoeba
 make font          # dist/YomiFont-Regular.ttf
 make web           # dist/YomiFont-Web-Regular.ttf
-make test          # 342 shaping tests, HarfBuzz + CoreText
+make test          # 366 shaping tests, HarfBuzz + CoreText
 make eval          # precision / coverage against UniDic
 make eval-blink    # same, modelling Blink script segmentation
 make visual        # typography contact sheet + metrics
 make bench         # scaling benchmark, by rule count
 make bench-explicit  # explicit ruby, by span length
+make audit         # does every rule spell the reading it came from?
 ```
 
-Two builds, because 15 MB is not a `@font-face` download:
+Two builds, because 16 MB is not a `@font-face` download:
 
 | | rules | explicit-ruby bases | glyphs | size |
 |---|---|---|---|---|
-| `YomiFont-Regular.ttf` | 300,364 | 10,940 kanji | 63,053 | 15.3 MB |
+| `YomiFont-Regular.ttf` | 325,492 | 10,940 kanji | 63,053 | 16.1 MB |
 | `YomiFont-Web-Regular.ttf` | 60,000 (longest) | 2,907 kanji (only what its rules use) | 50,126 | 5.5 MB |
 
 The web build trims two things. Truncating the rule set costs automatic
@@ -186,7 +190,7 @@ zero-advance and carry their placement inside the outline, so the base text keep
 its exact metrics and no GPOS is needed.
 
 A ruby glyph's identity is `(kana, size, x offset)` and never the word it
-appears in, which is what keeps 300,364 rules inside 19,849 glyphs instead of
+appears in, which is what keeps 325,492 rules inside 63,053 glyphs instead of
 past the 65,535 limit.
 
 See [docs/architecture.md](docs/architecture.md) and

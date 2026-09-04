@@ -46,10 +46,18 @@ STABILIZATION = [
     ("時間", ["じかん"]),
     ("失敗", ["しっぱい"]),
     ("芝生", ["しばふ"]),
-    # JMnedict administrative place names, admitted because their readings are
-    # determined. 新宿区 has one entry; 新宿 has five, so it abstains.
+    # JMnedict place names, admitted because their readings are determined.
     ("新宿区", ["しんじゅくく"]),
     ("東京都", ["とうきょうと"]),
+    # proper nouns whose reading is settled in practice, even where JMnedict
+    # lists obscure homographs: 新宿 also names hamlets read あらじゅく,
+    # しんしく, しんしゅく and にいじゅく, none of which anyone writes.
+    ("新宿", ["しんじゅく"]),
+    ("六本木", ["ろっぽんぎ"]),
+    ("秋葉原", ["あきはばら"]),
+    ("浅草", ["あさくさ"]),
+    ("原宿", ["はらじゅく"]),
+    ("渋谷", ["しぶや"]),
     ("渋谷区", ["しぶやく"]),
     ("千代田区", ["ちよだく"]),
     ("東京都新宿区", ["とうきょうと", "しんじゅくく"]),
@@ -65,7 +73,6 @@ STABILIZATION = [
 # Surfaces that must render NOTHING, with the reason they are undetermined.
 STABILIZATION_ABSTAIN = [
     ("月", "つき / げつ / がつ -- polyphonic, and no context resolves it"),
-    ("新宿", "five JMnedict entries: あらじゅく しんしく しんしゅく しんじゅく にいじゅく"),
     ("一月", "two entries: いちがつ (the month) and ひとつき / いちげつ (a month)"),
     ("上野", "こうずけ in the dictionary, うえの in running text"),
     ("居る", "the lexicon lists only おる; a corpus shows いる"),

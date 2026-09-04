@@ -35,12 +35,12 @@ def main() -> int:
     ap.add_argument("--base", default=build_mod.DEFAULT_BASE)
     ap.add_argument("--out", default="dist/YomiFont-Regular.ttf")
     ap.add_argument("--family", default="YomiFont")
-    ap.add_argument("--names", default="admin",
+    ap.add_argument("--names", default="place",
                     choices=("none", "admin", "place", "all"),
                     help="which JMnedict proper names to admit. 'admin' is "
                          "place-like names ending in an administrative suffix "
-                         "(東京都, 新宿区, ...): the subset that fits under the "
-                         "LookupList ceiling. 'place'/'all' do not compile.")
+                         "(東京都, 新宿区, ...). 'place' is every place-like "
+                         "name, pruned to the lookup budget. 'all' does not fit.")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--reparse", action="store_true")
     ap.add_argument("--stats-out", default="")
@@ -94,6 +94,8 @@ def main() -> int:
         voters = ents + person
         print(f"[lexicon] + {len(person)} person-name entries as competitors only")
 
+    if args.polyphony and os.path.exists(args.polyphony):
+        safety.NAME_CORPUS = json.load(open(args.polyphony, encoding="utf-8"))
     verdicts = safety.classify(voters)
     rep = safety.report(verdicts, voters)
     print(f"[safety]  {rep['safe_unique']} safe / {rep['ambiguous']} ambiguous "
@@ -119,6 +121,10 @@ def main() -> int:
         for e in lexicon.load(args.names_ir):
             if set(e.ntype) & jmnedict.PLACE_LIKE and e.live:
                 known.setdefault(e.surface, set()).add(e.reading)
+        rs = rules_mod.fit_lookup_budget(rs, safety.NAME_CORPUS, stats=c)
+        print(f"[names]   {c.get('name_rules_dropped_no_budget', 0)} name rules "
+              f"dropped for lookup budget; projected "
+              f"{c.get('ms_lookups_projected')} MultipleSubst lookups")
         rs = rules_mod.block_contradicted_names(rs, known, c)
         print(f"[names]   {c.get('name_blocks', 0)} uncarried names blocked "
               f"because a shorter rule would misread them")
@@ -127,9 +133,13 @@ def main() -> int:
     if args.polyphony and os.path.exists(args.polyphony):
         observed = json.load(open(args.polyphony, encoding="utf-8"))
         before = len(rs)
+        # JMdict only: see drop_corpus_contradicted. Admitting name readings
+        # here silently disarms the filter for exactly the surfaces it exists
+        # for (上野 こうずけ vs うえの).
         lex_readings: dict = {}
         for e in ents:
-            lex_readings.setdefault(e.surface, set()).add(e.reading)
+            if e.source == "jmdict":
+                lex_readings.setdefault(e.surface, set()).add(e.reading)
         rs = rules_mod.drop_corpus_contradicted(rs, observed, lex_readings,
                                                 stats=c)
         print(f"[corpus]  {c.get('corpus_contradicted', 0)} rules the corpus "

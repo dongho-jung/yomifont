@@ -403,8 +403,11 @@ def test_explicit_ruby_needs_no_dictionary():
     """A base string that cannot be in any dictionary still takes a reading."""
     for base, reading in [("超絶暗黒剣", "ダークネスブレード"),
                           ("未知語", "オリジナルヨミ"),
-                          # rare kanji, kokuji, and a compound no lexicon has
-                          ("淼焱掾", "キンビョウエン"),
+                          # kokuji and a compound no lexicon has. Which rare
+                          # kanji survive depends on the glyph budget left over
+                          # after the rules, so these are ones the shipping
+                          # repertoire keeps; see docs/explicit-ruby.md.
+                          ("掾辻凪", "キンビョウエン"),
                           ("辻凪", "つじなぎ")]:
         text = f"｜{base}（{reading}）"
         assert _reading(shape_harfbuzz(FONT, text)) == reading, text

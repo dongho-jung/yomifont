@@ -44,13 +44,13 @@ engine can see determines their reading.
 | | |
 |---|---|
 | **Precision** — of the readings it renders, how many are right | **99.96 %** |
-| **Wrong readings** in 20,000 held-out sentences | **21** |
-| Coverage — kanji tokens that receive ruby | 78.9 % |
+| **Wrong readings** in 20,000 held-out sentences | **20** |
+| Coverage — kanji tokens that receive ruby | 79.1 % |
 | Coverage under Blink's script segmentation | 48.9 % (precision 99.87 %) |
-| Safe lexical rules | 325,492 (incl. administrative place names) |
+| Safe lexical rules | 460,082 (incl. 153,745 place names) |
 | Explicit-ruby rules (no vocabulary at all) | 128 |
 | Total glyphs / ruby glyphs | 63,053 / 47,302 |
-| Font size | 16.1 MB (GSUB 10.0 MB) |
+| Font size | 20.4 MB (GSUB 14.9 MB) |
 | GPOS table | **none — the font has no GPOS at all** |
 | OpenType Sanitizer (what Chrome and Firefox require) | PASS |
 
@@ -152,7 +152,7 @@ make venv          # virtualenv + dependencies
 make data          # fetch JMdict, JMnedict, Noto Sans JP, Tatoeba
 make font          # dist/YomiFont-Regular.ttf
 make web           # dist/YomiFont-Web-Regular.ttf
-make test          # 366 shaping tests, HarfBuzz + CoreText
+make test          # 371 shaping tests, HarfBuzz + CoreText
 make eval          # precision / coverage against UniDic
 make eval-blink    # same, modelling Blink script segmentation
 make visual        # typography contact sheet + metrics

@@ -73,6 +73,14 @@ EXCLUDED_NAME_TYPES = PERSON_LIKE
 # enough lever to stay switchable.
 PERSON_NAMES_VETO = True
 
+# Proper nouns whose several listed readings collapse to one in running text.
+# See the note at the use site: this is the only place corpus evidence selects
+# a reading rather than only removing one, and it is fenced to JMnedict-only
+# surfaces. `NAME_CORPUS` is loaded by the pipeline from build_polyphony.py.
+NAME_CORPUS_DISAMBIGUATION = True
+NAME_CORPUS_MIN_HITS = 2
+NAME_CORPUS: dict[str, dict[str, int]] = {}
+
 
 @dataclass(slots=True)
 class SurfaceVerdict:
@@ -166,6 +174,30 @@ def classify(entries: list[LexEntry]) -> dict[str, SurfaceVerdict]:
         readings = {e.reading for e in preferred.values()}
         sources = tuple(sorted({e.source for e in es}))
         ntypes = tuple(sorted({t for e in es for t in e.ntype}))
+
+        # A proper noun with several listed readings where running text only
+        # ever uses one of them.  JMnedict has five entries for 新宿 --
+        # あらじゅく, しんしく, しんしゅく, しんじゅく, にいじゅく -- all typed
+        # `place`, all priority 0, so nothing in the lexical data ranks them;
+        # four are hamlets nobody writes about.  Treating that as undetermined
+        # loses 新宿, and 新宿 is しんじゅく.
+        #
+        # This is the one place corpus evidence *selects* rather than only
+        # removes, and it is deliberately fenced: proper nouns only, only when
+        # the corpus attests exactly one of the listed readings, and the
+        # reading still has to come from the lexicon. A word JMdict knows never
+        # reaches here.
+        if (len(readings) > 1 and NAME_CORPUS_DISAMBIGUATION
+                and sources == ("jmnedict",)):
+            hits = {r: NAME_CORPUS.get(surface, {}).get(r, 0) for r in readings}
+            live = [r for r, n in hits.items() if n >= NAME_CORPUS_MIN_HITS]
+            if len(live) == 1:
+                winner = min((e for e in preferred.values() if e.reading == live[0]),
+                             key=lambda e: (e.rank, -e.pri, e.seq))
+                out[surface] = SurfaceVerdict(
+                    surface, Safety.SAFE_UNIQUE, winner.reading, len(preferred),
+                    tuple(sorted(readings)), sources, ntypes, (winner.reading,))
+                continue
 
         if len(readings) == 1:
             winner = min(preferred.values(), key=lambda e: (e.rank, -e.pri, e.seq))

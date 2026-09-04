@@ -388,6 +388,13 @@ def drop_corpus_contradicted(rules: list[Rule], observed: dict[str, dict[str, in
     classified SAFE_UNIQUE, because the lexicon genuinely does list one
     reading, and every one produced a wrong reading in evaluation.
 
+    `lexicon_readings` must be the **general dictionary's** readings only, not
+    every reading any source lists.  Once JMnedict place names are admitted the
+    lexicon does list 上野 as うえの, so the corpus no longer contradicts
+    anything and 上野 goes back to rendering こうずけ -- which is exactly the
+    wrong reading this is here to remove.  What matters is whether the corpus
+    shows something the *word* was not claimed to be.
+
     The test is specifically **a reading the lexicon does not list at all**,
     not merely "a reading other than the one shown".  Those are different
     things, and conflating them breaks the policy the safety classifier is
@@ -428,6 +435,75 @@ def drop_corpus_contradicted(rules: list[Rule], observed: dict[str, dict[str, in
     if stats is not None:
         stats["corpus_contradicted"] = dropped
     return kept
+
+
+# A MultipleSubst subtable is a map keyed by glyph, so it holds one output per
+# glyph and the number of lookups needed is exactly the largest number of
+# distinct ruby outputs any single first glyph has.  The LookupList's Offset16
+# array runs out a little past 3,200 even with every lookup already Extension.
+MAX_MS_LOOKUPS = 2_900
+
+
+def fit_lookup_budget(rules: list[Rule], observed: dict | None = None,
+                      cap: int = MAX_MS_LOOKUPS,
+                      stats: dict | None = None) -> list[Rule]:
+    """Keep the proper-noun rules that fit, dropping the tail of the worst glyphs.
+
+    Admitting every place name needs 6,175 lookups against a ceiling near
+    3,200, so it does not build.  But the cost is not spread out: of 4,910
+    first glyphs the median needs 10 lookups and only **seven** exceed the cap
+    -- 大, 上, 下, 西, 東, 小, 中, each starting thousands of 大字○○-style rural
+    hamlets.  Capping per first glyph therefore keeps essentially every name
+    anyone would write and drops only the tail of those seven.
+
+    Within an overloaded glyph the budget goes to names most likely to be
+    written: ones a corpus actually attests, then short ones, since the famous
+    places are short (新宿, 池袋, 大阪) and the obscure ones are long
+    (大字上小阿仁村).  Lexical rules are never dropped -- only proper nouns
+    compete for the tail.
+    """
+    from .layout import layout_word
+    from .rubyglyphs import variant_name
+
+    observed = observed or {}
+
+    def output(r: Rule) -> tuple:
+        return tuple(variant_name(p.kana, p.size, p.x)
+                     for p in layout_word(r.groups)) + (r.seq[0],)
+
+    core = [r for r in rules if r.origin != "name"]
+    names = [r for r in rules if r.origin == "name"]
+    seen: dict[str, set[tuple]] = defaultdict(set)
+    # Two independent ceilings, and a name has to clear both. The lookup count
+    # is the global maximum of distinct outputs per first glyph; the
+    # ChainSubRuleSet is per first glyph and reaches each of its rules through
+    # an Offset16, so a glyph can have room in one and not the other.
+    ruleset: dict[str, int] = defaultdict(int)
+    for r in core:
+        seen[r.seq[0]].add(output(r))
+        ruleset[r.seq[0]] += 12 + 2 * len(r.seq)
+
+    names.sort(key=lambda r: (0 if r.seq in observed else 1, len(r.seq), r.seq))
+    kept, dropped_lookup, dropped_ruleset = [], 0, 0
+    for r in names:
+        out = output(r)
+        g = r.seq[0]
+        cost = 12 + 2 * len(r.seq)
+        if ruleset[g] + cost > CHAIN_RULESET_BUDGET:
+            dropped_ruleset += 1
+            continue
+        if out not in seen[g] and len(seen[g]) >= cap:
+            dropped_lookup += 1
+            continue
+        seen[g].add(out)
+        ruleset[g] += cost
+        kept.append(r)
+    if stats is not None:
+        stats["name_rules_dropped_no_budget"] = dropped_lookup + dropped_ruleset
+        stats["dropped_lookup_budget"] = dropped_lookup
+        stats["dropped_ruleset_budget"] = dropped_ruleset
+        stats["ms_lookups_projected"] = max((len(v) for v in seen.values()), default=0)
+    return core + kept
 
 
 def block_contradicted_names(rules: list[Rule], names: dict[str, set[str]],

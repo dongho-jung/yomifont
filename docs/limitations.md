@@ -103,16 +103,30 @@ else a build.
 
 ### Unknown proper nouns
 
-Names ending in an administrative suffix (東京都, 新宿区, 渋谷区, every 市 and
-町 and 県) now ship: 32,236 JMnedict pairs whose readings are official and
-determined, costing 2,039 MultipleSubst lookups against a ceiling near 3,000.
-The rest of JMnedict still does not fit — place-like alone needs 6,304 lookups
-— so a name outside that subset gets no ruby. Phase 1 would have decomposed
-新宿区 into あたら + やど + く; it now renders しんじゅくく, and bare 新宿
-renders nothing because JMnedict lists five different readings for it
-(あらじゅく, しんしく, しんしゅく, しんじゅく, にいじゅく), all `place`, all
-with priority 0. Nothing in the lexical data ranks them; only corpus frequency
-does, and using that to pick a reading is what this project refuses to do.
+**153,745 place-like JMnedict names now ship.** Admitting all of them needs
+6,175 MultipleSubst lookups against a ceiling near 3,200, so it does not build
+— but that cost is not spread out. Of 4,910 first glyphs the median needs 10
+lookups and only **seven** exceed the cap: 大, 上, 下, 西, 東, 小, 中, each
+starting thousands of 大字○○-style rural hamlets. Capping per first glyph keeps
+essentially every name anyone would write and drops 15,308 from the tail of
+those seven (`rules.fit_lookup_budget`). Two ceilings apply independently: the
+global lookup count, and the per-glyph ChainSubRuleSet, whose ChainSubRule
+offsets are Offset16 from the set's start.
+
+新宿 is the case that forced the question. JMnedict gives it five entries —
+あらじゅく, しんしく, しんしゅく, しんじゅく, にいじゅく — all typed `place`,
+all priority 0, so nothing in the lexical data ranks them; four are hamlets
+nobody writes about. Treating that as undetermined loses 新宿, and 新宿 is
+しんじゅく. So for **proper nouns only**, where the corpus attests exactly one
+of the listed readings, that reading is taken (`safety.NAME_CORPUS_DISAMBIGUATION`).
+This is the one place corpus evidence *selects* rather than only removes, and
+it is fenced: JMnedict-only surfaces, and the reading still has to come from
+the lexicon. A word JMdict knows never reaches it, so 日本 and 京都 are decided
+as before.
+
+That trade is measured: precision 99.961 % → 99.963 %, coverage 78.9 % → 79.1 %,
+wrong readings 21 → 20. It also costs 3.9 MB and 2,645 explicit-base kanji,
+because the rules eat glyph budget the base repertoire was using.
 
 ### Okurigana context in Blink
 
@@ -170,7 +184,7 @@ tategaki renders with furigana suppressed rather than scattered.
 `nlck` and width features; only `vert`/`vrt2` punctuation forms are carried
 across.
 
-**Font size.** 16.1 MB, and the 60k-rule web build is 5.5 MB. Two separate
+**Font size.** 20.4 MB, and the 60k-rule web build is 5.5 MB. Two separate
 costs stack up here:
 
 * the finer placement grid and three ruby sizes cost 14,486 automatic ruby

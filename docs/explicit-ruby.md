@@ -25,7 +25,47 @@ nothing visible to a shaping engine can choose between them.
 
 ---
 
-## Syntax
+## Two forms
+
+| form | works in | typography |
+|---|---|---|
+| `〇月《ライト》` | **everywhere, Chrome included** | ruby right-aligned to the base, fixed size |
+| `｜月（ライト）` / `\|月(ライト)` | HarfBuzz, CoreText, Safari; Chrome only for kana bases | centred, 均等割り付け, size steps down |
+
+Use `〇BASE《RUBY》` unless you know the text will never be read in a
+Chromium-based app. The `｜BASE（RUBY）` form gives better typography where the
+engine hands the font the whole expression at once, and it wins automatically
+when it can — the two are one rule set, tried longest first.
+
+Why two forms exist is [Engines](#engines): Blink itemises text into script
+runs before shaping and never puts a Han base and a Kana reading in the same
+one, so a rule that needs both at once gets nothing. `〇月《` and `ライト》` are
+separate runs and separate rules, and nothing has to cross the boundary.
+
+### The `〇BASE《RUBY》` form
+
+```
+〇月《ライト》        〇宇宙《そら》        〇本気《マジ》
+私は〇月《ライト》を見た。
+```
+
+| role | character | why this one |
+|---|---|---|
+| marker | `〇` U+3007 | Script=**Han**. `｜` is Common and gets absorbed by a preceding kana run, so after a particle the first rule loses it. `〇` measured SPLIT after both hiragana and katakana. Type it as **まる**. `◯`, `※`, `〓` and `〆` all failed the same test. |
+| open | `《` U+300A | the Aozora Bunko ruby delimiter |
+| close | `》` U+300B | lets the second rule be `KANA+ 》`. With `）` that rule would also match 私（わたし） and swallow it, which is why no trailing marker is needed here. |
+
+**The marker is required**, unlike in Aozora, which infers the base from the
+preceding kanji. The first run cannot see whether a reading follows the `《`, so
+an inferring rule hid the bracket of any `漢字《…》` in ordinary prose:
+`小説《ノルウェイの森》` came out as `小説ノルウェイの森》`. Requiring `〇` is
+what keeps ordinary `《》` text intact.
+
+In Blink the marker only reaches the base when both are ideographs, since `〇`
+is Han and a kana base starts its own run. A kana base there keeps working with
+`｜ほんき（マジ）`, which is a single run in Blink anyway.
+
+## Syntax of the ｜BASE（RUBY） form
 
     START  BASE  OPEN  RUBY  CLOSE
 

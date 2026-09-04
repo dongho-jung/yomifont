@@ -129,6 +129,26 @@ def build_cases():
     # text: the probe reads "one em narrower" as "the rule fired", and a
     # shorter rule firing inside a longer string is indistinguishable. Adding
     # 月（ made 月（ラ report SAME_RUN when it is not.
+    # Does a Han-script marker escape absorption by a preceding kana run?
+    # ｜ is Common and joins whatever precedes it, which is why run 1 loses its
+    # marker after kana. An ideograph starts its own run instead -- if these
+    # SPLIT, a Han marker fixes it.
+    cases.append(("marker/hira_then_iter", HIRA + "々", "Hiragana + 々 (Han)"))
+    cases.append(("marker/kata_then_iter", KATA + "々", "Katakana + 々 (Han)"))
+    cases.append(("marker/hira_then_close", HIRA + "〆", "Hiragana + 〆 (Han)"))
+    cases.append(("marker/hira_then_bar", HIRA + "｜", "Hiragana + ｜ (Common)"))
+    cases.append(("marker/iter_then_han", "々" + HAN, "々 + Han"))
+    # Easier-to-type candidates for the non-absorbable leading marker, and the
+    # Aozora ruby delimiters 《》 which would remove the need for a trailing one.
+    for lbl, ch, note in [("zero", "〇", "U+3007 ideographic zero, type まる"),
+                          ("maru", "◯", "U+25EF large circle"),
+                          ("kome", "※", "U+203B reference mark, type こめ"),
+                          ("geta", "〓", "U+3013 geta mark"),
+                          ("dbl_open", "《", "U+300A, Aozora ruby open"),
+                          ("dbl_close", "》", "U+300B, Aozora ruby close")]:
+        cases.append((f"cand/hira_then_{lbl}", HIRA + ch, "after hiragana: " + note))
+        cases.append((f"cand/{lbl}_then_han", ch + HAN, "before Han: " + note))
+    cases.append(("cand/kata_then_dblclose", KATA + "》", "Katakana + 》"))
     cases.append(("side/close_with_kata", KATA + "）", "Katakana + close paren"))
     cases.append(("side/bar_with_kata", KATA + "｜", "Katakana + fullwidth bar"))
     cases.append(("pua/han_pua3", HAN + "", "Han + 3 PUA"))

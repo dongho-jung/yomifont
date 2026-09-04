@@ -128,16 +128,6 @@
   ]
  },
  {
-  "label": "hira_sep_kata/FW_BAR",
-  "text": "つ｜ラ",
-  "note": "U+FF5C fullwidth vertical line, Common",
-  "codepoints": [
-   "U+3064",
-   "U+FF5C",
-   "U+30E9"
-  ]
- },
- {
   "label": "han_sep_kata/ASCII_BAR",
   "text": "月|ラ",
   "note": "U+007C vertical line, Common",
@@ -1205,6 +1195,168 @@
    "U+007C",
    "U+6708",
    "U+0028"
+  ]
+ },
+ {
+  "label": "marker/hira_then_iter",
+  "text": "つ々",
+  "note": "Hiragana + 々 (Han)",
+  "codepoints": [
+   "U+3064",
+   "U+3005"
+  ]
+ },
+ {
+  "label": "marker/kata_then_iter",
+  "text": "ラ々",
+  "note": "Katakana + 々 (Han)",
+  "codepoints": [
+   "U+30E9",
+   "U+3005"
+  ]
+ },
+ {
+  "label": "marker/hira_then_close",
+  "text": "つ〆",
+  "note": "Hiragana + 〆 (Han)",
+  "codepoints": [
+   "U+3064",
+   "U+3006"
+  ]
+ },
+ {
+  "label": "marker/hira_then_bar",
+  "text": "つ｜",
+  "note": "Hiragana + ｜ (Common)",
+  "codepoints": [
+   "U+3064",
+   "U+FF5C"
+  ]
+ },
+ {
+  "label": "marker/iter_then_han",
+  "text": "々月",
+  "note": "々 + Han",
+  "codepoints": [
+   "U+3005",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "cand/hira_then_zero",
+  "text": "つ〇",
+  "note": "after hiragana: U+3007 ideographic zero, type まる",
+  "codepoints": [
+   "U+3064",
+   "U+3007"
+  ]
+ },
+ {
+  "label": "cand/zero_then_han",
+  "text": "〇月",
+  "note": "before Han: U+3007 ideographic zero, type まる",
+  "codepoints": [
+   "U+3007",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "cand/hira_then_maru",
+  "text": "つ◯",
+  "note": "after hiragana: U+25EF large circle",
+  "codepoints": [
+   "U+3064",
+   "U+25EF"
+  ]
+ },
+ {
+  "label": "cand/maru_then_han",
+  "text": "◯月",
+  "note": "before Han: U+25EF large circle",
+  "codepoints": [
+   "U+25EF",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "cand/hira_then_kome",
+  "text": "つ※",
+  "note": "after hiragana: U+203B reference mark, type こめ",
+  "codepoints": [
+   "U+3064",
+   "U+203B"
+  ]
+ },
+ {
+  "label": "cand/kome_then_han",
+  "text": "※月",
+  "note": "before Han: U+203B reference mark, type こめ",
+  "codepoints": [
+   "U+203B",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "cand/hira_then_geta",
+  "text": "つ〓",
+  "note": "after hiragana: U+3013 geta mark",
+  "codepoints": [
+   "U+3064",
+   "U+3013"
+  ]
+ },
+ {
+  "label": "cand/geta_then_han",
+  "text": "〓月",
+  "note": "before Han: U+3013 geta mark",
+  "codepoints": [
+   "U+3013",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "cand/hira_then_dbl_open",
+  "text": "つ《",
+  "note": "after hiragana: U+300A, Aozora ruby open",
+  "codepoints": [
+   "U+3064",
+   "U+300A"
+  ]
+ },
+ {
+  "label": "cand/dbl_open_then_han",
+  "text": "《月",
+  "note": "before Han: U+300A, Aozora ruby open",
+  "codepoints": [
+   "U+300A",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "cand/hira_then_dbl_close",
+  "text": "つ》",
+  "note": "after hiragana: U+300B, Aozora ruby close",
+  "codepoints": [
+   "U+3064",
+   "U+300B"
+  ]
+ },
+ {
+  "label": "cand/dbl_close_then_han",
+  "text": "》月",
+  "note": "before Han: U+300B, Aozora ruby close",
+  "codepoints": [
+   "U+300B",
+   "U+6708"
+  ]
+ },
+ {
+  "label": "cand/kata_then_dblclose",
+  "text": "ラ》",
+  "note": "Katakana + 》",
+  "codepoints": [
+   "U+30E9",
+   "U+300B"
   ]
  },
  {

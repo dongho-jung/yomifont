@@ -62,7 +62,47 @@ from .rubyglyphs import variant_name
 START = "｜|"    # U+FF5C FULLWIDTH VERTICAL LINE, U+007C VERTICAL LINE
 OPEN = "（("     # U+FF08 FULLWIDTH LEFT PARENTHESIS, U+0028 LEFT PARENTHESIS
 CLOSE = "）)"    # U+FF09 FULLWIDTH RIGHT PARENTHESIS, U+0029 RIGHT PARENTHESIS
-DELIMITERS = START + OPEN + CLOSE
+
+# --- the Aozora form, which also works where the text is split into runs ----
+# Blink itemises before shaping and never puts a Han base and a Kana reading in
+# one buffer, so the rule above -- which needs the whole expression at once --
+# gets nothing on a kanji base, the case the feature exists for.
+#
+# Splitting it into two rules, one per run, needs no information to cross the
+# boundary at all:
+#
+#     〇月《   one run: the marker, the base, the opener
+#     ライト》 another: the reading and the closer
+#
+# Three characters make that work, each chosen from measurement rather than
+# from the Unicode properties (tests/integration/itemize_probe.html):
+#
+#   〇  U+3007, Script=Han. A preceding kana run cannot absorb it, which is
+#       exactly what goes wrong with ｜: ｜ is Script=Common and joins whatever
+#       is in front of it, so after a particle the first rule loses its marker
+#       and the expression renders half-done. 〇 measured SPLIT after both
+#       hiragana and katakana, and SAME_RUN before Han. ◯, ※, 〓 and 〆 all
+#       failed the same test. It is also easy to type: まる converts to it.
+#   《》 U+300A/U+300B, the Aozora Bunko ruby delimiters. They remove the need
+#       for a trailing marker: the second rule is `KANA+ 》`, and 《かな》 is
+#       rare in ordinary prose *and* already means ruby by convention, where
+#       `KANA+ ）` would have swallowed 私（わたし）.
+#
+# The marker is required, unlike in Aozora. Aozora can infer the base from the
+# preceding kanji run because a human reads the whole line; the first run
+# cannot see whether a reading follows the 《, so an inferring rule would hide
+# the bracket of any 漢字《…》 in ordinary prose -- 小説《ノルウェイの森》 came
+# out as 小説ノルウェイの森》. The marker is what makes the intent visible
+# inside the first run.
+#
+# In Blink the marker only reaches the base when both are ideographs, since 〇
+# is Han and a kana base starts its own run. A kana base there keeps working
+# with the ｜BASE（RUBY） form, which is a single run in Blink anyway.
+MARK = "〇"
+AOZORA_OPEN = "《"
+AOZORA_CLOSE = "》"
+
+DELIMITERS = START + OPEN + CLOSE + MARK + AOZORA_OPEN + AOZORA_CLOSE
 
 # --- ruby alphabet --------------------------------------------------------
 # Every character that may appear inside （...）.  Each one costs
@@ -168,6 +208,41 @@ def cost(alpha: str, limits: Limits = DEFAULT_LIMITS,
         "ruby_glyphs": len(off) * len(alpha),
         "records": sum(len(c) + 3 + b for (b, _), c in pl.items()),
     }
+
+
+# --- the split form's layout ----------------------------------------------
+# Ruby is right-aligned to the end of the base, at a fixed pitch, in one size.
+#
+# Not a preference -- it is what the second run can compute on its own. It
+# starts exactly where the base ends (the delimiters are zero-advance), and it
+# knows how many kana it has, so growing leftward from its own origin needs
+# nothing from the first run. Centring would need the base width. The first run
+# *can* move the second, and Chrome honours a negative XAdvance across the run
+# boundary (tests/integration/shift_probe.html), but it buys nothing: whatever
+# the first run subtracts, something has to add back to keep the line correct,
+# and only the first run knows how much.
+#
+# So the split form trades 均等割り付け and size stepping for working at all
+# where the text is itemised. Engines that hand over the whole expression still
+# get the single-run rules, which come first and consume the span.
+SPLIT_SIZE = 0.50
+SPLIT_PITCH = int(SPLIT_SIZE * EM)
+
+
+def split_offsets(n: int) -> list[int]:
+    """Left edge of each of `n` ruby kana, right-aligned to the base end."""
+    return [-(n - i) * SPLIT_PITCH for i in range(n)]
+
+
+def split_cells(limits: Limits = DEFAULT_LIMITS) -> set[tuple[float, int]]:
+    return {(SPLIT_SIZE, x) for n in range(1, limits.ruby + 1)
+            for x in split_offsets(n)}
+
+
+def split_inventory(alpha: str,
+                    limits: Limits = DEFAULT_LIMITS) -> set[tuple[str, float, int]]:
+    cells = split_cells(limits)
+    return {(ch, s, x) for ch in alpha for s, x in cells}
 
 
 def variants_for(cells: list[tuple[float, int]], reading_len: int) -> list[str]:

@@ -45,6 +45,7 @@ def _needed_chars(rules: list[Rule], policy: str = DEFAULT_POLICY,
         base_chars.update(ex_alphabet)
         base_chars.update(explicit_mod.DELIMITERS)
         ruby.update(explicit_mod.inventory(ex_alphabet, ex, policy, ex_grid))
+        ruby.update(explicit_mod.split_inventory(ex_alphabet, ex))
     return base_chars, ruby
 
 
@@ -256,6 +257,33 @@ def build_font(
             },
             order=glyph_order,
             first_index=0,
+            split={
+                "base_max": explicit.base,
+                "ruby_max": explicit.ruby,
+                "cells": {n: [(explicit_mod.SPLIT_SIZE, x)
+                              for x in explicit_mod.split_offsets(n)]
+                          for n in range(1, explicit.ruby + 1)},
+                "ruby": {cell: {cmap[ord(c)]: variant_name(c, *cell)
+                                for c in ruby_alpha
+                                if variant_name(c, *cell) in font["glyf"].glyphs}
+                         for cell in explicit_mod.split_cells(explicit)},
+                "coverage": {
+                    "mark": [cmap[ord(c)] for c in explicit_mod.MARK
+                             if ord(c) in cmap],
+                    "open": [cmap[ord(c)] for c in explicit_mod.AOZORA_OPEN
+                             if ord(c) in cmap],
+                    "close": [cmap[ord(c)] for c in explicit_mod.AOZORA_CLOSE
+                              if ord(c) in cmap],
+                    "base": sorted(set(cmap.values()) - delims,
+                                   key=glyph_order.__getitem__),
+                    # ideographs only: this is what lets the marker be omitted
+                    "kanji": sorted(
+                        {cmap[ord(c)] for c in kanji_repertoire(base_path)
+                         if ord(c) in cmap} - delims,
+                        key=glyph_order.__getitem__),
+                    "ruby": [cmap[ord(c)] for c in ruby_alpha],
+                },
+            },
         )
         ex_info = explicit_mod.cost(ruby_alpha, explicit, policy, explicit_grid)
         ex_info["protected_glyphs"] = len(protect)

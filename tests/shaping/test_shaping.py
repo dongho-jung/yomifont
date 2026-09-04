@@ -24,8 +24,9 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from corpus import (ABSTAIN, EXPLICIT, EXPLICIT_ASCII,  # noqa: E402
-                    EXPLICIT_MALFORMED, NO_RUBY, POC, SENTENCES,
-                    STABILIZATION, STABILIZATION_ABSTAIN)
+                    EXPLICIT_MALFORMED, EXPLICIT_SPLIT, NO_RUBY, POC,
+                    SENTENCES, SPLIT_UNMARKED, STABILIZATION,
+                    STABILIZATION_ABSTAIN)
 from shaper import (base_text, ruby_runs, shape_coretext,  # noqa: E402
                     shape_harfbuzz, total_advance)
 
@@ -373,6 +374,62 @@ def test_explicit_ruby_reuses_the_shared_inventory():
                 names.add(g.name)
     assert names, "expected ラ ruby glyphs"
     assert all(n.startswith("r.30E9.") for n in names), names
+
+
+@pytest.mark.parametrize("text,base_em,reading", EXPLICIT_SPLIT)
+def test_split_form_reading(text, base_em, reading):
+    """〇BASE《RUBY》 renders the author's reading and keeps the line width."""
+    glyphs = shape_harfbuzz(FONT, text)
+    assert _reading(glyphs) == reading, text
+    if base_em is not None:
+        assert total_advance(glyphs) == base_em * 1000, text
+
+
+@pytest.mark.parametrize("text,base_em,reading", EXPLICIT_SPLIT)
+def test_split_form_survives_being_split(text, base_em, reading):
+    """The whole point: shaped as two buffers, it still works.
+
+    Blink hands the shaper the marker+base+opener in one run and the
+    reading+closer in another. Shaping the halves separately and concatenating
+    is what that looks like, and it has to match the single-buffer result.
+    """
+    cut = text.index("《") + 1
+    halves = shape_harfbuzz(FONT, text[:cut]) + shape_harfbuzz(FONT, text[cut:])
+    assert _reading(halves) == reading, text
+    assert total_advance(halves) == total_advance(shape_harfbuzz(FONT, text)), text
+
+
+def test_split_form_leaves_ordinary_parentheses_alone():
+    """《》 is why no trailing marker is needed; （） would have swallowed these."""
+    for text in ["私（わたし）", "月（ライト）", "（ですます）", "価格（税別）"]:
+        glyphs = shape_harfbuzz(FONT, text)
+        assert not _markup_hidden(glyphs), text
+
+
+@pytest.mark.parametrize("text", SPLIT_UNMARKED)
+def test_split_form_needs_its_marker(text):
+    """《》 without 〇 is ordinary text, and nothing of it may disappear.
+
+    This is why the marker is required rather than inferred from the preceding
+    kanji: the first run cannot see whether a reading follows the bracket, so
+    an inferring rule turned 小説《ノルウェイの森》 into 小説ノルウェイの森》.
+    """
+    glyphs = shape_harfbuzz(FONT, text)
+    assert not _markup_hidden(glyphs), text
+    for ch in "《》":
+        if ch in text:
+            assert _plain_glyph_names(ch)[0] in [g.name for g in glyphs], text
+
+
+def test_split_form_after_kana():
+    """The case the ｜ marker cannot do in Blink: an expression after a particle.
+
+    〇 is Han, so a preceding kana run cannot absorb it the way it absorbs ｜.
+    """
+    glyphs = shape_harfbuzz(FONT, "私は〇月《ライト》を見た。")
+    assert "ライト" in _reading(glyphs)
+    # 私 は 月 を 見 た 。 -- the marker and both brackets are weightless
+    assert total_advance(glyphs) == 7 * 1000
 
 
 def test_line_break_inside_an_expression_fails_safe():

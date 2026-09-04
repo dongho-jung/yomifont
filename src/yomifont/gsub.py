@@ -235,6 +235,7 @@ def build_explicit_lookups(
     coverage: dict[str, list[str]],
     order: dict[str, int],
     first_index: int,
+    split: dict | None = None,
 ) -> list[ot.Lookup]:
     """Explicit Ruby: one ChainContextSubst rule per expression *shape*.
 
@@ -324,6 +325,73 @@ def build_explicit_lookups(
             st.SubstLookupRecord.append(rec)
         st.SubstCount = len(st.SubstLookupRecord)
         subtables.append(st)
+
+    # ---- the split form ------------------------------------------------
+    # Two rules that never have to see each other, so an engine that itemises
+    # the text into runs can still match both -- one in each. This is what
+    # makes a kanji base work in Blink; see `explicit.MARK`.
+    #
+    # They come after everything above. Where the whole expression did reach
+    # one buffer, the single-run rule has already consumed it and these never
+    # run, so engines that can do the better typography still do.
+    split = split or {}
+    if split:
+        s_cov = split["coverage"]
+        s_ruby = split["ruby"]
+        s_idx: dict[tuple[float, int], int] = {}
+        for cell in sorted(s_ruby):
+            s_idx[cell] = first_index + len(lookups)
+            lookups.append(build_single_subst_lookup(s_ruby[cell], extension=True))
+        scov = {k: _coverage(v, order) for k, v in s_cov.items()}
+
+        # run 1, with the marker: 〇 BASE{b} 《   -- base may be anything
+        for b in range(1, split["base_max"] + 1):
+            st = ot.ChainContextSubst()
+            st.Format = 3
+            st.BacktrackGlyphCount = 0
+            st.BacktrackCoverage = []
+            st.LookAheadGlyphCount = 0
+            st.LookAheadCoverage = []
+            st.InputCoverage = ([scov["mark"]] + [scov["base"]] * b
+                                + [scov["open"]])
+            st.InputGlyphCount = len(st.InputCoverage)
+            st.SubstLookupRecord = []
+            for idx in [0, b + 1] + list(range(1, b + 1)):
+                rec = ot.SubstLookupRecord()
+                rec.SequenceIndex = idx
+                rec.LookupListIndex = hide_idx if idx in (0, b + 1) else protect_idx
+                st.SubstLookupRecord.append(rec)
+            st.SubstLookupRecord.sort(key=lambda r: r.SequenceIndex)
+            st.SubstCount = len(st.SubstLookupRecord)
+            subtables.append(st)
+        # There is deliberately no marker-less variant. `BASE{b} 《` would be
+        # convenient -- Aozora allows it -- but the first run cannot see whether
+        # a reading follows, so it would hide the 《 of any 漢字《…》 in ordinary
+        # prose: 小説《ノルウェイの森》 came out as 小説ノルウェイの森》, with the
+        # opening bracket gone and the closing one left. The marker is what
+        # makes the intent visible inside the first run.
+        # run 2: RUBY{n} 》
+        for n in range(1, split["ruby_max"] + 1):
+            st = ot.ChainContextSubst()
+            st.Format = 3
+            st.BacktrackGlyphCount = 0
+            st.BacktrackCoverage = []
+            st.LookAheadGlyphCount = 0
+            st.LookAheadCoverage = []
+            st.InputCoverage = [scov["ruby"]] * n + [scov["close"]]
+            st.InputGlyphCount = len(st.InputCoverage)
+            st.SubstLookupRecord = []
+            for i, cell in enumerate(split["cells"][n]):
+                rec = ot.SubstLookupRecord()
+                rec.SequenceIndex = i
+                rec.LookupListIndex = s_idx[cell]
+                st.SubstLookupRecord.append(rec)
+            rec = ot.SubstLookupRecord()
+            rec.SequenceIndex = n
+            rec.LookupListIndex = hide_idx
+            st.SubstLookupRecord.append(rec)
+            st.SubstCount = len(st.SubstLookupRecord)
+            subtables.append(st)
 
     lk = ot.Lookup()
     lk.LookupType = 7

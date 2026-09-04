@@ -167,6 +167,12 @@ shipping font, against 2,482 glyphs of remaining headroom. The ~2,370 that do
 not fit are Extension A and compatibility ideographs; a base containing one of
 them is left as visible markup rather than rendered wrong.
 
+Those extra outlines are the single largest cost in the font — about **3.4 MB**,
+against 0.7 MB for all 32,391 ruby glyphs, because a ruby glyph is a composite
+and a kanji is not. `--no-explicit-bases` turns the widening off and is what
+the web build uses; explicit ruby still works there, but only on characters the
+rules already mention (2,907 kanji rather than 10,940).
+
 ---
 
 ## Limits

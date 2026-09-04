@@ -50,6 +50,11 @@ def main() -> int:
                     help="explicit-ruby placement lattice, font units")
     ap.add_argument("--explicit-latin", action="store_true",
                     help="also allow Latin and digits *inside* the ruby")
+    ap.add_argument("--no-explicit-bases", action="store_true",
+                    help="do not widen the kanji repertoire for explicit bases; "
+                         "explicit ruby then only works on characters the rules "
+                         "already use. This is the size knob -- the extra kanji "
+                         "outlines cost far more than the ruby glyphs do.")
     args = ap.parse_args()
 
     if args.reparse or not os.path.exists(args.lexicon):
@@ -92,7 +97,8 @@ def main() -> int:
     info = build_mod.build_font(rs, base_path=args.base, out_path=args.out,
                                 family=args.family, explicit=limits,
                                 explicit_grid=args.explicit_grid,
-                                explicit_latin=args.explicit_latin)
+                                explicit_latin=args.explicit_latin,
+                                explicit_bases=not args.no_explicit_bases)
     info["rule_stats"] = c
     info["safety"] = rep
     if args.stats_out:

@@ -58,7 +58,8 @@ font: data ## build dist/YomiFont-Regular.ttf
 	$(PYPATH) $(PY) scripts/pipeline.py --out $(DIST) --stats-out dist/build-stats.json
 
 web: ## build the smaller 60k-rule web font
-	$(PYPATH) $(PY) scripts/pipeline.py --limit 60000 --out $(WEB) --family "YomiFont Web"
+	$(PYPATH) $(PY) scripts/pipeline.py --limit 60000 --out $(WEB) --family "YomiFont Web" \
+	    --no-explicit-bases
 
 all: font web ## build both fonts
 

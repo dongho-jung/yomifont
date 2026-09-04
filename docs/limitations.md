@@ -136,9 +136,18 @@ tategaki renders with furigana suppressed rather than scattered.
 `nlck` and width features; only `vert`/`vrt2` punctuation forms are carried
 across.
 
-**Font size.** 11.2 MB. The finer placement grid and three ruby sizes cost
-14,194 ruby glyphs against Phase 1's 3,262, so even the 60k-rule web build is
-3.7 MB. Suffix sharing across `ChainSubRule`s is untried.
+**Font size.** 15.3 MB, and the 60k-rule web build is 5.5 MB. Two separate
+costs stack up here:
+
+* the finer placement grid and three ruby sizes cost 14,486 automatic ruby
+  glyphs against Phase 1's 3,262;
+* widening the kanji repertoire so explicit ruby can take bases the dictionary
+  never mentions adds ~5,900 real kanji outlines — **about 3.4 MB, more than
+  every explicit ruby glyph put together** (32,391 of them, 0.7 MB, because
+  ruby glyphs are composites and kanji are not).
+
+That second cost is what `--no-explicit-bases` turns off, and it is what makes
+the web build viable. Suffix sharing across `ChainSubRule`s is still untried.
 
 **Build time above ~300k rules** degrades sharply: the HarfBuzz repacker fails
 around an 8.7 MB GSUB and fontTools' fallback takes 4–5× longer.

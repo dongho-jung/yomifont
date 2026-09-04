@@ -148,12 +148,27 @@ Details and the conventions honoured (and not) in
 make venv          # virtualenv + dependencies
 make data          # fetch JMdict, JMnedict, Noto Sans JP, Tatoeba
 make font          # dist/YomiFont-Regular.ttf
-make test          # 214 shaping tests, HarfBuzz + CoreText
+make web           # dist/YomiFont-Web-Regular.ttf
+make test          # 342 shaping tests, HarfBuzz + CoreText
 make eval          # precision / coverage against UniDic
 make eval-blink    # same, modelling Blink script segmentation
 make visual        # typography contact sheet + metrics
-make bench         # scaling benchmark
+make bench         # scaling benchmark, by rule count
+make bench-explicit  # explicit ruby, by span length
 ```
+
+Two builds, because 15 MB is not a `@font-face` download:
+
+| | rules | explicit-ruby bases | glyphs | size |
+|---|---|---|---|---|
+| `YomiFont-Regular.ttf` | 300,364 | 10,940 kanji | 63,053 | 15.3 MB |
+| `YomiFont-Web-Regular.ttf` | 60,000 (longest) | 2,907 kanji (only what its rules use) | 50,126 | 5.5 MB |
+
+The web build trims two things. Truncating the rule set costs automatic
+coverage; skipping the widened kanji repertoire costs explicit *bases*, and
+that is the bigger size lever — those extra outlines cost about 3.4 MB while
+all 32,391 explicit ruby glyphs cost 0.7 MB, because ruby glyphs are
+composites and kanji are not. Explicit ruby itself is present in both.
 
 ## How it works
 

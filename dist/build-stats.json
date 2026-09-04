@@ -1,6 +1,6 @@
 {
- "rules_in": 325492,
- "rules_compiled": 325487,
+ "rules_in": 341092,
+ "rules_compiled": 341087,
  "rules_dropped": 5,
  "glyphs": 63053,
  "ruby_glyphs": 47316,
@@ -10,11 +10,11 @@
   0.44,
   0.5
  ],
- "block_rules": 2209,
- "font_bytes": 16119508,
- "gsub_bytes": 9971444,
- "glyf_bytes": 4410449,
- "build_seconds": 147.38,
+ "block_rules": 17809,
+ "font_bytes": 16438048,
+ "gsub_bytes": 10296532,
+ "glyf_bytes": 4403958,
+ "build_seconds": 166.16,
  "explicit": {
   "base_max": 8,
   "ruby_max": 16,
@@ -24,20 +24,20 @@
   "offset_pairs": 173,
   "ruby_glyphs": 31659,
   "records": 2048,
-  "protected_glyphs": 4576,
+  "protected_glyphs": 4593,
   "lookups": 176
  },
  "timing": {
-  "subset": 1.4,
-  "ruby": 5.96,
+  "subset": 1.55,
+  "ruby": 6.25,
   "gsub": 6.03,
-  "save": 133.98
+  "save": 152.32
  },
- "chain_rules": 325487,
- "chain_subtables": 146,
- "chain_first_glyphs": 4576,
+ "chain_rules": 341087,
+ "chain_subtables": 155,
+ "chain_first_glyphs": 4593,
  "multiple_subst_lookups": 2038,
- "multiple_subst_mappings": 179940,
+ "multiple_subst_mappings": 180682,
  "rule_stats": {
   "safe_surfaces": 220800,
   "skip_single_kanji": 1881,
@@ -63,6 +63,8 @@
   "final_safe_contextual": 112608,
   "final_name_rules": 23161,
   "final_block_rules": 2175,
+  "name_blocks": 15600,
+  "name_blocks_skipped_no_room": 955,
   "corpus_contradicted": 34
  },
  "safety": {

@@ -44,6 +44,12 @@ PARTICLE_ENDINGS = set("がにとのはもへ")
 MAX_SEQ_LEN = 12
 MAX_READING_LEN = 12
 
+# Every rule sharing a first glyph lives in one ChainSubRuleSet, whose
+# ChainSubRule offsets are Offset16 from the set's start. Stay well inside
+# 65,535 -- fontTools' repair cannot split a single oversized ruleset, because
+# splitting one would break longest match.
+CHAIN_RULESET_BUDGET = 58_000
+
 # A single kanji has a determinable reading only when it stands alone, and the
 # font cannot tell that: inside an unknown compound the same rule fires and
 # prints the free-standing reading (蓮花 -> はす+はな, not れんげ).  Expressing
@@ -422,6 +428,73 @@ def drop_corpus_contradicted(rules: list[Rule], observed: dict[str, dict[str, in
     if stats is not None:
         stats["corpus_contradicted"] = dropped
     return kept
+
+
+def block_contradicted_names(rules: list[Rule], names: dict[str, set[str]],
+                             stats: dict | None = None) -> list[Rule]:
+    """Abstain on a known name the shorter rules would mis-read.
+
+    Every rule here is correct on its own; what goes wrong is what happens when
+    they *compose* over a name the rule set does not carry.  六本木 is
+    ろっぽんぎ, the font has no rule for it, so 六本 fires and the reader gets
+    ろっぽん over 六本 with 木 bare.  Auditing rules one at a time cannot see
+    this, because 六本 -> ろっぽん is a perfectly good rule.
+
+    Only *contradiction* counts, not incompleteness.  中央公園 renders
+    ちゅうおう + こうえん, which is exactly its reading, and blocking it would
+    delete correct ruby from ordinary text; あいの里公園 renders こうえん over
+    公園, right for the span it covers.  What is blocked is where a fired
+    group disagrees with how the name's own reading actually aligns -- 立花 as
+    りっか inside いよ立花駅 (たちばな), 小屋 as こや inside くろがね小屋
+    (ごや).
+
+    A block rule consumes its span and emits only the base glyph, so all
+    blocks sharing a first glyph share one MultipleSubst output: measured, this
+    adds 0 to the lookup count that bounds the build.
+    """
+    from .engine import RuleIndex  # local: engine imports Rule from here
+
+    index = RuleIndex(rules)
+    have = {r.seq for r in rules}
+    # All rules sharing a first glyph must live in one ChainSubRuleSet -- that
+    # is what makes longest match work -- and a ChainSubRule is reached from
+    # the set through an Offset16. 大 already carries 3,932 rules and ~78 kB
+    # without any blocks; pushing it further stops the build outright. Blocks
+    # are a safety net, so a first glyph that has no room simply keeps the
+    # behaviour it has today rather than costing everything else a build.
+    budget: dict[str, int] = defaultdict(int)
+    for r in rules:
+        budget[r.seq[0]] += 12 + 2 * len(r.seq)
+    blocks: list[Rule] = []
+    skipped = 0
+    for surface, readings in names.items():
+        if len(readings) != 1 or not (2 <= len(surface) <= MAX_SEQ_LEN):
+            continue
+        if surface in have:
+            continue
+        truth = None
+        try:
+            truth = align(surface, next(iter(readings)))
+        except AlignError:
+            continue
+        at = {(g.start, g.length): g.reading for g in truth}
+        whole = next(iter(readings))
+        for m in index.apply(surface):
+            if any(at.get((m.start + gs, gl), rd) != rd or
+                   ((m.start + gs, gl) not in at and rd not in whole)
+                   for gs, gl, rd in m.groups):
+                cost = 12 + 2 * len(surface)
+                if budget[surface[0]] + cost > CHAIN_RULESET_BUDGET:
+                    skipped += 1
+                else:
+                    budget[surface[0]] += cost
+                    blocks.append(Rule(seq=surface, groups=(), safety="AMBIGUOUS",
+                                       origin="name_block", src=surface))
+                break
+    if stats is not None:
+        stats["name_blocks"] = len(blocks)
+        stats["name_blocks_skipped_no_room"] = skipped
+    return rules + blocks
 
 
 def save(rules: list[Rule], path: str) -> None:

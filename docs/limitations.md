@@ -78,6 +78,29 @@ EDRDG-common words (下宿 → したじゅく, 東京 → とうけい); the ev
 
 Full machine-readable list: `data/normalized/error_corpus.json`.
 
+### Known names the rule set does not carry
+
+Rules are correct one at a time and can still compose wrongly. 六本木 is
+ろっぽんぎ; the shipped subset has no rule for it, so 六本 fires and the reader
+gets ろっぽん over 六本 with 木 bare. `audit_readings.py` cannot see this,
+because 六本 → ろっぽん is a perfectly good rule.
+
+Composition failures split in two, and only one of them is an error:
+
+* **partial but consistent** — 公園 → こうえん inside あいの里公園, 六本 →
+  ろっぽん inside 六本木. The ruby shown is right for the span it covers; what
+  is missing is ruby on the rest. Left alone.
+* **contradicting** — 立花 as りっか inside いよ立花駅 (たちばな), 小屋 as こや
+  inside くろがね小屋 (ごや). 15,600 of these now get a **block rule**, so they
+  render nothing instead of something wrong.
+
+Blocking is nearly free in the resource that bounds the build: block rules
+share one MultipleSubst output per first glyph, so the lookup count is
+unchanged at 2,038. It is not free in the ChainSubRuleSet, which is why 大
+(already 3,932 rules and ~78 kB before any blocks) takes none — a first glyph
+with no room keeps the behaviour it has today rather than costing everything
+else a build.
+
 ### Unknown proper nouns
 
 Names ending in an administrative suffix (東京都, 新宿区, 渋谷区, every 市 and
@@ -86,7 +109,10 @@ determined, costing 2,039 MultipleSubst lookups against a ceiling near 3,000.
 The rest of JMnedict still does not fit — place-like alone needs 6,304 lookups
 — so a name outside that subset gets no ruby. Phase 1 would have decomposed
 新宿区 into あたら + やど + く; it now renders しんじゅくく, and bare 新宿
-renders nothing because JMnedict lists five different readings for it.
+renders nothing because JMnedict lists five different readings for it
+(あらじゅく, しんしく, しんしゅく, しんじゅく, にいじゅく), all `place`, all
+with priority 0. Nothing in the lexical data ranks them; only corpus frequency
+does, and using that to pick a reading is what this project refuses to do.
 
 ### Okurigana context in Blink
 

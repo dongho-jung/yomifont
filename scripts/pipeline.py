@@ -111,6 +111,18 @@ def main() -> int:
           f"derivations, {c.get('blocked_lex_vs_derived',0)} lex-vs-derived, "
           f"{c.get('skip_single_kanji',0)} single kanji, "
           f"{c.get('UNSAFE_ALIGNMENT',0)} unalignable")
+    # Names the rule set does not carry, whose composed rendering would
+    # contradict their real reading, become abstentions. Block rules share one
+    # MultipleSubst output per first glyph, so this costs 0 lookups.
+    if args.names != "none":
+        known: dict = {}
+        for e in lexicon.load(args.names_ir):
+            if set(e.ntype) & jmnedict.PLACE_LIKE and e.live:
+                known.setdefault(e.surface, set()).add(e.reading)
+        rs = rules_mod.block_contradicted_names(rs, known, c)
+        print(f"[names]   {c.get('name_blocks', 0)} uncarried names blocked "
+              f"because a shorter rule would misread them")
+
     observed = {}
     if args.polyphony and os.path.exists(args.polyphony):
         observed = json.load(open(args.polyphony, encoding="utf-8"))

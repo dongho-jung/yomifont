@@ -289,11 +289,51 @@ Measured, per case:
 | `｜月（つき）` Han base | no ruby |
 | `｜AI（エーアイ）` Latin base | no ruby |
 
-So in Chrome, explicit ruby is available for kana bases and not for kanji
-bases — which is the majority of what the feature is for. This is a structural
-property of pre-shaping itemisation, not something the font can work around:
-the second run (`ライト）`) carries no evidence that it is a reading at all, so
-any rule that fired on it would also fire on ordinary parenthesised text.
+So in the **shipped** design, explicit ruby is available for kana bases and not
+for kanji bases — which is the majority of what the feature is for.
+
+That is a property of the shipped *rules*, not of Blink. It was reported here
+as a structural impossibility; that was wrong, and the correction is below.
+
+### A kanji base IS reachable in Blink
+
+The shipped rule needs the whole expression at once, which Blink never
+provides. Split it in two and each half works inside its own run:
+
+```
+run 1   ｜BASE（     hide the delimiters, keep the base
+run 2   RUBY）｜     hide the close and the marker, set the kana
+```
+
+Measured, and demonstrated: `make_split_font.py` builds it and
+`split_demo.html` renders `｜月（ライト）｜`, `｜東京（エド）｜` and
+`｜日本語能力試験（にほんごのうりょくしけん）｜` in Chrome 152 with the reading
+over the kanji and the markup gone, while `私（わたし）` and `価格（税別）` stay
+untouched. Single-run engines produce an identical glyph stream, so it is one
+design rather than two.
+
+Three things it costs, all measured rather than assumed:
+
+* **A trailing marker.** Without it run 2's rule is `KANA+ CLOSE`, which is
+  also what ordinary parenthesised kana looks like, and swallowing 私（わたし）
+  is not acceptable. The marker must sit *after* a kana to land in run 2 — a
+  Common character before the kana joins the Han run instead.
+* **Ruby is right-aligned to the base end, not centred.** Centring needs the
+  base width. Run 2 can be *moved* rather than told: a negative XAdvance on the
+  last glyph of run 1 shifts where run 2 starts, and Chrome honours that across
+  the run boundary (`shift_probe.html` — `kern`, `dist` and `mark` all work).
+  But whatever run 1 subtracts, something must add back to keep the line
+  correct, and only run 1 knows how much, so the shift buys nothing. Run 2's
+  origin is necessarily the base end.
+* **A defect that is not yet solved.** Run 1's rule needs the leading `｜`,
+  which is Script=Common, so after kana it is absorbed into the preceding run
+  and run 1 never matches. The ruby still draws, so the expression renders
+  half-done — reading present, delimiters visible. A non-Common marker would
+  fix it, which means an ideograph and an ugly syntax.
+
+It is a prototype, not shipped: adopting it is a syntax change
+(`｜月（ライト）｜`) and a typography change (right-aligned, fixed pitch, no
+均等割り付け and no size step-down), and that is a product decision.
 
 ### The fail-safe
 

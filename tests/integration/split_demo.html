@@ -1,0 +1,14 @@
+<!doctype html><html lang="ja"><meta charset="utf-8">
+<title>split-run explicit ruby in Blink</title>
+<style>
+@font-face { font-family: SP; src: url("/dist/SplitProto.ttf"); }
+body{margin:0;padding:16px;background:#fff;font-family:-apple-system,system-ui}
+.r{font-family:SP;font-size:58px;line-height:2.1;white-space:pre}
+h2{font:600 13px/1.5 system-ui;color:#555;margin:14px 0 0}
+</style>
+<h2>KANJI base + KANA ruby, split-run rules (this is the whole question)</h2>
+<div class="r">｜月（ライト）｜　｜東京（エド）｜　｜宇宙（そら）｜</div>
+<h2>longer base</h2>
+<div class="r">｜日本語能力試験（にほんごのうりょくしけん）｜</div>
+<h2>ordinary parenthesised text must be untouched</h2>
+<div class="r">私（わたし）　月（ライト）　価格（税別）</div>

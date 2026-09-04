@@ -124,15 +124,45 @@ def build_cases():
     cases.append(("prefix/bar_open_only", "｜" + HAN + "（", "marker + Han + open"))
     cases.append(("prefix/ascii_bar_open", "|" + HAN + "(", "ascii marker + Han + open"))
     # a PUA-only transport: does an all-PUA tail stay with the Han?
+    # Which side does a Common delimiter land on when it has a neighbour on
+    # each side? Do NOT add a case whose text is a prefix of another case's
+    # text: the probe reads "one em narrower" as "the rule fired", and a
+    # shorter rule firing inside a longer string is indistinguishable. Adding
+    # 月（ made 月（ラ report SAME_RUN when it is not.
+    cases.append(("side/close_with_kata", KATA + "）", "Katakana + close paren"))
+    cases.append(("side/bar_with_kata", KATA + "｜", "Katakana + fullwidth bar"))
     cases.append(("pua/han_pua3", HAN + "", "Han + 3 PUA"))
     cases.append(("pua/han_pua_kata", HAN + "" + KATA, "Han + PUA + Katakana"))
     cases.append(("pua/pua_han_pua", "" + HAN + "", "PUA + Han + PUA"))
     return cases
 
 
+def drop_overlapping(cases):
+    """Remove cases another case's text sits inside.
+
+    The probe reads "one em narrower" as "this case's rule fired", and it
+    cannot tell that apart from a *shorter* case's rule firing on a substring.
+    ｜月｜ is a prefix of ｜月｜ラ｜, so once both carry rules the longer one
+    reports SAME_RUN whatever Blink did with it -- which is how 月（ラ briefly
+    looked like it shared a run. Keep the shorter, more primitive measurement.
+    """
+    texts = {t for _, t, _ in cases}
+    kept, dropped = [], []
+    for label, text, note in cases:
+        if any(other != text and other in text for other in texts):
+            dropped.append(label)
+        else:
+            kept.append((label, text, note))
+    if dropped:
+        print(f"dropped {len(dropped)} unmeasurable cases (another case's text "
+              f"is a substring): {', '.join(sorted(dropped)[:6])}"
+              f"{' …' if len(dropped) > 6 else ''}")
+    return kept
+
+
 def main() -> int:
     out = sys.argv[1] if len(sys.argv) > 1 else "dist/Itemize.ttf"
-    cases = build_cases()
+    cases = drop_overlapping(build_cases())
 
     chars = set()
     for _, text, _ in cases:

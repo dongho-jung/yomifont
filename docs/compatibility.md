@@ -132,10 +132,19 @@ So the rule is not "special characters break runs". Common-script characters
 prefix `｜月（` is one run. What Blink will not do is put Han and Kana in the
 same run, whatever sits between them.
 
-**Consequence for explicit ruby.** No character encoding of the syntax can
-work in Blink — not punctuation, not joiners, not variation selectors, not PUA.
-The font can still see the *prefix* `｜BASE（`, which is what the fail-safe in
-[explicit-ruby.md](explicit-ruby.md) uses.
+**Consequence for explicit ruby.** No character encoding of the syntax can put
+a Han base and a Kana reading in one run — not punctuation, not joiners, not
+variation selectors, not PUA. What that rules out is a rule that needs to see
+both at once. It does *not* rule out the feature: `｜BASE（` is one run and
+`RUBY）｜` is another, so a pair of rules, one per run, reaches a kanji base
+after all. Demonstrated in Chrome 152; see
+[explicit-ruby.md](explicit-ruby.md).
+
+A caution about this probe. It reads "one em narrower" as "this case's rule
+fired", which cannot be told apart from a *shorter* case's rule firing on a
+substring — adding a rule for `月（` made `月（ラ` report SAME_RUN when it does
+not. `drop_overlapping` now removes any case another case's text sits inside,
+and 28 cases go with it.
 
 One measured asymmetry between the two syntaxes, the first found: the
 fullwidth prefix `｜月（` is SAME_RUN, the ASCII prefix `|月(` is SPLIT. The

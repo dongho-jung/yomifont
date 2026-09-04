@@ -1,0 +1,41 @@
+<!doctype html><html lang="ja"><meta charset="utf-8">
+<title>does a negative advance cross a Blink run boundary?</title>
+<style>body{font:13px/1.5 system-ui;margin:18px}
+pre{background:#111;color:#0f0;padding:10px}
+td,th{border:1px solid #ddd;padding:3px 8px;font-size:13px}table{border-collapse:collapse}</style>
+<!--
+  月｜ラ is two Blink runs: 月｜ (Han + Common) and ラ (Katakana). The marker
+  carries XAdvance -500 in GPOS. If run 2's origin accounts for it the string
+  measures 2.5 em; if Blink lays each run out from the unadjusted advance it
+  measures 3 em. つ｜ラ is the control -- one run, so it must shift.
+-->
+<div id="out">running…</div><pre id="log"></pre>
+<script>
+const SIZE=100;
+function w(t){const e=document.createElement("span");
+ e.setAttribute("lang","ja");
+ e.style.cssText="font-family:ShiftProbe;font-size:"+SIZE+"px;white-space:pre;"+
+  "display:inline-block;position:absolute;visibility:hidden";
+ e.textContent=t;document.body.appendChild(e);
+ const r=e.getBoundingClientRect().width;e.remove();return r;}
+(async()=>{
+ const ff=new FontFace("ShiftProbe",'url("/dist/Shift.ttf?cb='+Date.now()+'")');
+ const diag={};
+ try{await ff.load();document.fonts.add(ff);await document.fonts.ready;diag.loaded=true;}
+ catch(e){diag.loaded=false;diag.error=String(e);}
+ const CASES=[["月ラ","no marker, two runs",2],["月｜ラ","kern marker, crosses run boundary",2.5],
+   ["月（ラ","dist marker, crosses",2.5],["月［ラ","mark marker, crosses",2.5],
+   ["つ｜ラ","CONTROL kern marker, one run",2.5],["月｜","marker at end of run 1",1.5]];
+ const results={};let html="<table><tr><th>text</th><th>expected em</th><th>measured em</th><th>shift applied?</th><th>note</th></tr>";
+ for(const [t,note,exp] of CASES){
+   const em=w(t)/SIZE; const ok=Math.abs(em-exp)<0.1;
+   results[t]={note,expected_em:exp,measured_em:+em.toFixed(3),shift_applied:ok};
+   html+=`<tr><td style="font-size:20px">${t}</td><td>${exp}</td><td>${em.toFixed(2)}</td>`+
+     `<td style="color:${ok?"#0a0":"#c00"};font-weight:700">${ok?"YES":"no"}</td><td>${note}</td></tr>`;
+ }
+ html+="</table>";document.getElementById("out").innerHTML=html;
+ const payload={diag,engine:((navigator.userAgent.match(/(Firefox|Edg|Chrome|Version)\/[\d.]+/g)||["unknown"]).join("_")+"_shift").replace(/[^A-Za-z0-9._-]/g,"_"),ua:navigator.userAgent,results};
+ document.getElementById("log").textContent=JSON.stringify(payload,null,1);
+ try{await fetch("/report",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});document.title="REPORTED";}catch(e){}
+})();
+</script>

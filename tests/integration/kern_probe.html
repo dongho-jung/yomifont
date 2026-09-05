@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Which script transitions can a font kern across?</title>
+<style>
+ @font-face { font-family: K; src: url("/dist/KernProbe.ttf"); }
+ body { margin: 0; padding: 16px; background: #fff;
+        font: 13px/1.6 -apple-system, system-ui, sans-serif; }
+ .m { font-family: K; font-size: 100px; white-space: pre;
+      /* the pair must be the whole inline box, and nothing may re-space it */
+      letter-spacing: 0; word-spacing: 0; font-kerning: normal; }
+ table { border-collapse: collapse; margin-top: 10px; }
+ td, th { border: 1px solid #ddd; padding: 3px 9px; text-align: left; }
+ .yes { color: #0a0; font-weight: 600; }
+ .no  { color: #c00; font-weight: 600; }
+ #stage { position: absolute; visibility: hidden; top: -9999px; }
+</style>
+</head>
+<body>
+<!--
+  Each pair carries a -500/1000 em kern. At 100px that is 50px, so a pair that
+  reaches GPOS as one run measures 50px narrower than the sum of its two
+  characters measured separately. The single characters are measured in the
+  same font and the same box, so the comparison isolates the pair rule.
+
+      ./tests/integration/server.py &
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+        --headless=new --virtual-time-budget=8000 --dump-dom \
+        http://127.0.0.1:8777/tests/integration/kern_probe.html
+-->
+<h3>Which script transitions can a font kern across?</h3>
+<div id="stage"><span class="m" id="probe"></span></div>
+<div id="out">measuring…</div>
+<script>
+const PAIRS = [
+  ["han-han",   "漢", "字", "control: one run by construction"],
+  ["hira-hira", "あ", "い", "control: one run by construction"],
+  ["kata-kata", "ア", "イ", "control: one run by construction"],
+  ["hira-kata", "あ", "ア", "Blink merges these two scripts deliberately"],
+  ["han-hira",  "漢", "あ", "kanji followed by okurigana"],
+  ["hira-han",  "あ", "漢", ""],
+  ["han-kata",  "漢", "ア", ""],
+  ["kata-han",  "ア", "漢", ""],
+  ["han-latin", "漢", "A",  ""],
+  ["han-digit", "漢", "1",  "digits are Common script"],
+];
+
+function width(s) {
+  const el = document.getElementById("probe");
+  el.textContent = s;
+  return el.getBoundingClientRect().width;
+}
+
+// Second channel. WebKit's inline-box width ignores GPOS, so on Safari the DOM
+// channel reports every pair -- controls included -- as unkerned, which is a
+// property of the probe and not of the engine. Canvas measureText goes through
+// a different path in both engines; reading both and requiring the controls to
+// pass is what makes a NO trustworthy.
+const ctx = document.createElement("canvas").getContext("2d");
+function canvasWidth(s) {
+  ctx.font = '100px K';
+  return ctx.measureText(s).width;
+}
+
+document.fonts.load('100px K').then(() => document.fonts.ready).then(() => {
+  const rows = PAIRS.map(([label, a, b, note]) => {
+    const apart = width(a) + width(b);
+    const together = width(a + b);
+    const saved = apart - together;
+    const cSaved = (canvasWidth(a) + canvasWidth(b)) - canvasWidth(a + b);
+    // 50px is the kern at this size; allow for subpixel layout
+    const kerned = saved > 25 || cSaved > 25;
+    return { label, pair: a + b, apart, together,
+             saved: Math.max(saved, cSaved), kerned, note };
+  });
+  const html = ["<table><tr><th>transition</th><th>pair</th><th>a+b</th>"
+    + "<th>ab</th><th>saved</th><th>kern applied</th><th></th></tr>"];
+  for (const r of rows) {
+    html.push(`<tr><td>${r.label}</td><td>${r.pair}</td>`
+      + `<td>${r.apart.toFixed(1)}</td><td>${r.together.toFixed(1)}</td>`
+      + `<td>${r.saved.toFixed(1)}</td>`
+      + `<td class="${r.kerned ? "yes" : "no"}">${r.kerned ? "YES" : "NO"}</td>`
+      + `<td>${r.note}</td></tr>`);
+  }
+  html.push("</table>");
+  document.getElementById("out").innerHTML = html.join("");
+  document.title = "RESULT " + rows.map(r => r.label + "=" + (r.kerned ? 1 : 0)).join(" ");
+});
+</script>
+</body>
+</html>

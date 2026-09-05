@@ -148,6 +148,55 @@ One measured asymmetry between the two syntaxes, the first found: the
 fullwidth prefix `｜月（` is SAME_RUN, the ASCII prefix `|月(` is SPLIT. The
 fail-safe therefore only works for the fullwidth form.
 
+## An ordinary font cannot kern across a Han↔Kana boundary
+
+The segmentation above is usually described in terms of what it costs *this*
+font. It is not specific to this font. `make_kern_font.py` builds a plain font
+whose only feature is a `kern` pair adjusting each script transition by
+−500/1000 em, and `kern_probe.html` measures whether the pair came out half an
+em narrower. Nothing about ruby is involved.
+
+| pair | transition | Blink | WebKit | CoreText | HarfBuzz |
+|---|---|---|---|---|---|
+| 漢字 | Han → Han | yes | yes | yes | yes |
+| あい | Hira → Hira | yes | yes | yes | yes |
+| アイ | Kata → Kata | yes | yes | yes | yes |
+| あア | Hira → Kata | yes | yes | yes | yes |
+| 漢1 | Han → digit (Common) | yes | yes | yes | yes |
+| **漢あ** | **Han → Hira** | **no** | yes | yes | yes |
+| **あ漢** | **Hira → Han** | **no** | yes | yes | yes |
+| **漢ア** | **Han → Kata** | **no** | yes | yes | yes |
+| **ア漢** | **Kata → Han** | **no** | yes | yes | yes |
+| **漢A** | **Han → Latin** | **no** | yes | yes | yes |
+
+So a Japanese font cannot adjust the spacing between a kanji and the kana that
+follows it — the single most common adjacency in Japanese text — in Chrome
+alone. Blink's own `HanKerning` exists to emulate spacing the font cannot
+supply, and its header says why: *"OpenType features can't handle kerning at
+font boundaries by design."* Font boundaries are unavoidable. This boundary is
+not: it is created by `RunSegmenter` before any font is consulted.
+
+Two independent measurement channels are read (DOM inline width and canvas
+`measureText`) and a pair counts as kerned if either sees it, because WebKit's
+inline-box width ignores GPOS — on the DOM channel alone Safari reports every
+pair unkerned, controls included. The controls are what make a "no"
+trustworthy: in Blink they pass on both channels while the Han↔Kana rows fail
+on both.
+
+Two further facts bear on whether merging those runs would be safe:
+
+* **The OpenType script tag is a formality here.** Shaping the same Han+Kana
+  string with the tag forced to `hani`, `kana` or `DFLT` gives an identical
+  glyph stream. Every shipping Japanese font checked — Hiragino Kaku Gothic
+  W3, Hiragino Mincho ProN, Hiragino Sans GB, Noto Sans JP — registers the
+  *same* feature set under `hani` and `kana`. (Arial Unicode, a pan-Unicode
+  font rather than a Japanese one, does not: it has `locl salt smpl trad`
+  under `hani` only.)
+* **Blink already merges one such pair on purpose.** `GetScriptForOpenType`
+  maps Katakana to Hiragana with the comment *"UScriptCode and OpenType script
+  are not 1:1 … normalizing earlier helps to reduce splitting runs between
+  these scripts."* That is the あア row above.
+
 ## Blink's script segmentation
 
 Blink itemises a text node into script runs *before* shaping, so no GSUB rule

@@ -6,6 +6,9 @@ Filed against **`Chromium > Blink > Fonts`** (component id 1456925, from
 The form has a **Markdown** checkbox under the Description box. Tick it, or the
 tables below arrive as one run-on paragraph.
 
+The repro is given as source rather than an attachment: it asks a stranger for
+two minutes instead of for trust, and it is auditable at a glance.
+
 Two parts on purpose. The **Description** is the bug: repro, expected, actual,
 environment. The **first comment** is the analysis and the suggested fix. A
 reporter who has already decided what the fix should be reads as someone who
@@ -17,128 +20,166 @@ real should not have to scroll past a proposal to find out.
 ## Title
 
 ```
-Font kerning is not applied across a Han↔Kana boundary
+GPOS kerning is not applied across Han–Kana boundaries within the same font
 ```
-
 ---
 
 ## Description — paste this
 
-A font that declares a `kern` pair between a kanji and the kana that follows it
-has no effect in Chrome. The same font kerns the same pair in Safari, in native
-macOS text, and in HarfBuzz when the string is shaped in one buffer.
+Chrome does not apply GPOS pair kerning across Han–Hiragana or Han–Katakana
+boundaries, even when both characters come from the same font and
+`font-kerning: normal` is explicitly set. The test below defines eight kerning
+pairs: the four control pairs are applied, the four Han–Kana pairs are not.
+
+Safari, CoreText and HarfBuzz apply all eight with the same font.
 
 ### Steps to reproduce
 
-No preinstalled Japanese font carries a kern pair across this boundary — I
-checked Hiragino Kaku Gothic W3, Hiragino Mincho ProN and Noto Sans JP, and
-between them they have 5,982 CJK pairs and not one Han↔Kana pair — so the case
-needs a font built for it. This builds one from any Japanese font you already
-have, in two files:
+No preinstalled Japanese font carries a kern pair across this boundary —
+Hiragino Kaku Gothic W3, Hiragino Mincho ProN and Noto Sans JP have 5,982 CJK
+pairs between them and not one is Han–Kana — so the case needs a font built for
+it. These two files build one from any Japanese font you already have.
 
 `build.py`
 
 ```python
-# pip install fonttools ; pass any Japanese font, e.g. Noto Sans JP or Hiragino
 import sys
 from fontTools.ttLib import TTFont
 from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 
-PAIRS = [("漢","字"), ("あ","い"), ("ア","イ"), ("あ","ア"),   # controls: one script run
-         ("漢","あ"), ("あ","漢"), ("漢","ア"), ("ア","漢")]   # across Han <-> Kana
+PAIRS = ["漢字", "あい", "アイ", "あア", "漢あ", "あ漢", "漢ア", "ア漢"]
 
-f = TTFont(sys.argv[1], fontNumber=0)
-cm = f.getBestCmap()
-fea = "feature kern {\n" + "".join(
-    f"  pos {cm[ord(a)]} {cm[ord(b)]} -500;\n" for a, b in PAIRS) + "} kern;\n"
-addOpenTypeFeaturesFromString(f, fea)
-f.save("kernprobe.ttf")
+font = TTFont(sys.argv[1], fontNumber=0)
+cmap = font.getBestCmap()
+kern = -round(font["head"].unitsPerEm / 2)
+features = """
+languagesystem DFLT dflt;
+languagesystem hani dflt;
+languagesystem kana dflt;
+feature kern {
+""" + "".join(
+    f"  pos {cmap[ord(a)]} {cmap[ord(b)]} {kern};\n"
+    for a, b in PAIRS
+) + "} kern;\n"
+
+# Replaces the font's OpenType layout with just this feature.
+addOpenTypeFeaturesFromString(font, features)
+font.save("kernprobe.ttf")
+print(f"Expected reduction at 100px: {-kern / font['head'].unitsPerEm * 100:.2f}px")
 ```
 
 `probe.html`, in the same directory
 
 ```html
+<!doctype html>
+<html lang="ja">
 <meta charset="utf-8">
-<style>@font-face{font-family:K;src:url(kernprobe.ttf)}
- span{font-family:K;font-size:100px}</style>
-<div id="o"></div>
+<title>Han-Kana GPOS kerning test</title>
+<style>
+@font-face { font-family: K; src: url(kernprobe.ttf); }
+#stage { position: absolute; visibility: hidden; }
+#probe { font: 100px K; white-space: nowrap; letter-spacing: 0; word-spacing: 0; }
+</style>
+<div id="stage"><span id="probe"></span></div>
+<pre id="out">Loading test font…</pre>
 <script>
-const P=[["漢","字"],["あ","い"],["ア","イ"],["あ","ア"],
-         ["漢","あ"],["あ","漢"],["漢","ア"],["ア","漢"]];
-const s=document.createElement("span");document.body.append(s);
-const w=t=>{s.textContent=t;return s.getBoundingClientRect().width};
-const c=document.createElement("canvas").getContext("2d");
-const cw=t=>{c.font="100px K";return c.measureText(t).width};
-document.fonts.load("100px K").then(()=>document.fonts.ready).then(()=>{
-  o.innerHTML=P.map(([a,b])=>{
-    const d=Math.max(w(a)+w(b)-w(a+b), cw(a)+cw(b)-cw(a+b));
-    return `${a}${b}  saved ${d.toFixed(0)}px  ${d>25?"KERNED":"NOT KERNED"}`;
-  }).join("<br>");
-});
+// Two channels, because each engine breaks a different one: WebKit's inline-box
+// width ignores GPOS, and Chrome's canvas 2D does not apply the feature. A pair
+// counts as kerned if either channel sees the reduction.
+const pairs = ["漢字", "あい", "アイ", "あア", "漢あ", "あ漢", "漢ア", "ア漢"];
+const probe = document.getElementById("probe");
+const out = document.getElementById("out");
+const ctx = document.createElement("canvas").getContext("2d");
+
+const dom = (text, kerning) => {
+  probe.style.fontKerning = kerning;
+  probe.textContent = text;
+  return probe.getBoundingClientRect().width;
+};
+const canvas = text => { ctx.font = "100px K"; return ctx.measureText(text).width; };
+
+(async () => {
+  const faces = await document.fonts.load("100px K", pairs.join(""));
+  await document.fonts.ready;
+  if (!faces.length) throw new Error("Test font was not loaded");
+
+  const rows = pairs.map(text => {
+    const d = dom(text, "none") - dom(text, "normal");
+    const c = canvas(text[0]) + canvas(text[1]) - canvas(text);
+    return { text, d, c, kerned: Math.max(d, c) > 25 };
+  });
+  out.textContent = "pair  DOM     canvas  kerned\n" + rows.map(r =>
+    `${r.text}  ${r.d.toFixed(2).padStart(6)}  ${r.c.toFixed(2).padStart(6)}  `
+    + (r.kerned ? "yes" : "NO")).join("\n");
+})().catch(e => { out.textContent = `ERROR: ${e.message}`; });
 </script>
+</html>
 ```
 
-```
+```sh
+python3 -m pip install fonttools
 python3 build.py /path/to/NotoSansJP-Regular.ttf
 open probe.html
 ```
 
-The only thing added to the font is a `kern` pair of −500/1000 em on each of
-those eight pairs; nothing else is touched and no GSUB is involved. At 100 px
-that is 50 px, so a pair that reached GPOS as one run measures 50 px narrower
-than its two characters measured separately.
+The generated font has a single GPOS `kern` feature with those eight pair
+adjustments, registered under `DFLT`, `hani` and `kana`, and no GSUB table at
+all. Each adjustment is −0.5 em — for Noto Sans JP, exactly −500 units at 1000
+upem, so 50 px at a font size of 100 px.
+
+The page measures the same string in the same span twice, with
+`font-kerning: none` and `font-kerning: normal`, so nothing but kerning differs
+between the two measurements.
 
 ### Expected
 
-All eight pairs are kerned. The font declares a `kern` pair for each and
-`font-kerning: normal` is in effect.
+All eight pairs are reduced by 50 px.
 
-### Actual — Chrome 152.0.7977.76
+### Actual — Chrome 152.0.7977.76, macOS 26.6.2
 
-| pair | transition | kerned |
-|---|---|---|
-| 漢字 | Han → Han | yes |
-| あい | Hiragana → Hiragana | yes |
-| アイ | Katakana → Katakana | yes |
-| あア | Hiragana → Katakana | yes |
-| **漢あ** | **Han → Hiragana** | **no** |
-| **あ漢** | **Hiragana → Han** | **no** |
-| **漢ア** | **Han → Katakana** | **no** |
-| **ア漢** | **Katakana → Han** | **no** |
+| pair | transition | DOM reduction | kerned |
+|---|---|---:|---|
+| 漢字 | Han → Han | 50.00px | yes |
+| あい | Hiragana → Hiragana | 50.00px | yes |
+| アイ | Katakana → Katakana | 50.00px | yes |
+| あア | Hiragana → Katakana | 50.00px | yes |
+| **漢あ** | **Han → Hiragana** | **0.00px** | **no** |
+| **あ漢** | **Hiragana → Han** | **0.00px** | **no** |
+| **漢ア** | **Han → Katakana** | **0.00px** | **no** |
+| **ア漢** | **Katakana → Han** | **0.00px** | **no** |
 
-So a Japanese font cannot adjust the spacing between a kanji and the kana that
-follows it — the most common adjacency in the language.
-
-The first four rows are controls: each sits inside a single script run by
-construction — Blink merges Hiragana with Katakana deliberately, see below — so
-if any of them reported "no" the measurement would be broken rather than the
-engine. The page reads two independent channels, DOM
-inline-box width and canvas `measureText`, and counts a pair as kerned if
-either sees it. That matters for the cross-engine numbers below: WebKit's
-inline-box width ignores GPOS, so on the DOM channel alone Safari reports every
-pair unkerned, controls included.
+The first four rows are controls: each sits inside a single script run, so if
+any of them reported "no" the measurement would be broken rather than the
+engine. Only the four Han–Kana pairs fail.
 
 ### Other engines, same font
 
 | engine | version | result |
 |---|---|---|
-| Chrome / Blink | 152.0.7977.76 | the four Han↔Kana pairs fail |
+| Chrome / Blink | 152.0.7977.76 | the four Han–Kana pairs fail |
 | Safari / WebKit | 26.6.2 | all eight kern |
 | CoreText, via a direct shaping call | macOS 26.6.2 | all eight kern |
 | HarfBuzz, whole string in one buffer | 14.4.0 | all eight kern |
 
-Firefox is not in the table because it was not tested.
+The two measurement channels matter here. On the DOM channel alone Safari
+reports every pair unkerned, controls included, because WebKit's inline-box
+width ignores GPOS; the canvas channel shows all eight kerned there. Chrome is
+the other way round — its canvas 2D does not apply the feature at all, so the
+DOM numbers above are the ones to read. Running only one channel gives a wrong
+answer for one of the two engines.
+
+This prevents font-defined pair kerning across Han–Kana boundaries in Japanese
+text — including between a kanji and its okurigana — with no font change, no
+style change and no element boundary involved.
 
 ### Environment
 
-Chrome 152.0.7977.76, macOS 26.6.2. Not verified on Windows or Linux — the code
-path does not appear to be platform-specific, but I have not checked, so please
-read "OS: All" as an assumption rather than a measurement.
+- Chrome 152.0.7977.76
+- macOS 26.6.2
+- Windows and Linux: not tested
 
 I have some notes on where this comes from and on whether changing it could be
 made safe. Adding them as a comment rather than inline here.
-
----
 
 ## First comment — paste this after filing
 

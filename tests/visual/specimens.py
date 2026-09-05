@@ -45,31 +45,6 @@ PARAGRAPHS = [
     "国際交流基金は東京都新宿区にあります。",
 ]
 
-# Explicit Ruby. Rendered with the same pipeline as everything else, because
-# the whole claim is that it is not a second renderer.
-EXPLICIT = [
-    ("｜月（ライト）", "|月(ライト)"),
-    ("｜宇宙（そら）", "|宇宙(そら)"),
-    ("｜本気（マジ）", "|本気(マジ)"),
-    ("｜強敵（とも）", "|強敵(とも)"),
-    ("｜東京（とうきょう）", "|東京(とうきょう)"),
-    ("｜日本語能力試験（にほんごのうりょくしけん）",
-     "|日本語能力試験(にほんごのうりょくしけん)"),
-    ("｜東京都（とうきょうと）", "|東京都(とうきょうと)"),
-    ("｜国際交流基金（こくさいこうりゅうききん）",
-     "|国際交流基金(こくさいこうりゅうききん)"),
-    ("｜超絶暗黒剣（ダークネスブレード）", "|超絶暗黒剣(ダークネスブレード)"),
-    ("｜AI（エーアイ）", "|AI(エーアイ)"),
-]
-EXPLICIT_PARAGRAPHS = [
-    "昨日、｜月（ライト）を見た。",
-    "｜東京（エド）の夜は明るい。",
-    "これは｜本気（マジ）の話です。",
-]
-# Automatic vs explicit on the same base: the override has to be visible.
-OVERRIDE = [("東京", "｜東京（エド）"), ("宇宙", "｜宇宙（そら）"),
-            ("日本語", "｜日本語（ニホンゴ）")]
-
 FONT_SIZE = 64
 MARGIN = 18
 
@@ -194,39 +169,6 @@ def sheet(a_path: str, b_path: str, out_path: str, a_label: str, b_label: str):
     return out_path
 
 
-def explicit_sheet(font_path: str, out_path: str) -> str:
-    """Fullwidth beside ASCII, then automatic beside explicit on the same base."""
-    small = label_font()
-    rows = [(fw, render(font_path, fw), render(font_path, ascii_))
-            for fw, ascii_ in EXPLICIT]
-    rows += [(t, render(font_path, t, 44), None) for t in EXPLICIT_PARAGRAPHS]
-    rows += [(f"{auto}  vs  {exp}", render(font_path, auto),
-              render(font_path, exp)) for auto, exp in OVERRIDE]
-
-    label_w = 260
-    col_w = max(max(a.width, b.width if b else 0) for _, a, b in rows) + 24
-    width = label_w + col_w * 2
-    height = sum(max(a.height, b.height if b else 0) for _, a, b in rows) + 46
-    sheet_img = Image.new("RGB", (width, height), "white")
-    d = ImageDraw.Draw(sheet_img)
-    d.text((label_w + 8, 8), "fullwidth  ｜BASE（RUBY）", fill="black", font=small)
-    d.text((label_w + col_w + 8, 8), "ascii  |BASE(RUBY)", fill="black", font=small)
-    d.line([(label_w + col_w, 0), (label_w + col_w, height)], fill="#ddd")
-
-    y = 34
-    for text, a, b in rows:
-        d.text((8, y + 10), text[:34], fill="#666", font=small)
-        sheet_img.paste(a, (label_w, y))
-        if b is not None:
-            sheet_img.paste(b, (label_w + col_w, y))
-        h = max(a.height, b.height if b else 0)
-        d.line([(0, y + h), (width, y + h)], fill="#f0f0f0")
-        y += h
-    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    sheet_img.save(out_path)
-    return out_path
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--a", default="dist/phase1/YomiFont-Regular.ttf")
@@ -235,19 +177,7 @@ def main() -> int:
     ap.add_argument("--b-label", default="Phase 2")
     ap.add_argument("--out", default="docs/images/typography.png")
     ap.add_argument("--metrics", default="tests/visual/metrics.json")
-    ap.add_argument("--explicit-out", default="docs/images/explicit-ruby.png")
-    ap.add_argument("--explicit-only", action="store_true")
     args = ap.parse_args()
-
-    if os.path.exists(args.b):
-        print(f"[visual] wrote {explicit_sheet(args.b, args.explicit_out)}")
-        for fw, ascii_ in EXPLICIT[:4]:
-            m = measure(args.b, fw)
-            print(f"  {fw:<26} groups={m['ruby_groups']} "
-                  f"even={m['worst_spacing_deviation']} "
-                  f"gap={m['ruby_to_base_gap_em']}")
-    if args.explicit_only:
-        return 0
 
     p = sheet(args.a, args.b, args.out, args.a_label, args.b_label)
     print(f"[visual] wrote {p}")

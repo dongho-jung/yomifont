@@ -27,11 +27,12 @@ spans a longer rule consumed differently than the tokenizer did.
 A shaping engine sees a run of glyphs and nothing else — no sentence, no syntax,
 no world knowledge, and in Blink not even the okurigana.
 
-Every wall in this section is a wall for *inferring* a reading. None of them
-applies once the author writes the reading down: `｜人気（ひとけ）` renders
-ひとけ, and `｜生物（なまもの）` renders なまもの, because nothing is being
-inferred. [explicit-ruby.md](explicit-ruby.md) covers what that costs and where
-it works — notably that Blink's script segmentation limits it to kana bases.
+Every wall in this section is a wall for *inferring* a reading, and an author
+who writes the reading down is not inferring anything. YomiFont had a syntax
+for that — `｜人気（ひとけ）｜`, resolved entirely in GSUB — and it worked, in
+Chrome included. It was removed anyway: annotating each word by hand was more
+trouble than it was worth for the readings it recovered, and the inventory it
+needed was 31,701 glyphs, half the font. The commit is `6ca0452`.
 
 ### Readings that depend on meaning
 
@@ -125,8 +126,7 @@ the lexicon. A word JMdict knows never reaches it, so 日本 and 京都 are deci
 as before.
 
 That trade is measured: precision 99.961 % → 99.963 %, coverage 78.9 % → 79.1 %,
-wrong readings 21 → 20. It also costs 3.9 MB and 2,645 explicit-base kanji,
-because the rules eat glyph budget the base repertoire was using.
+wrong readings 21 → 20.
 
 ### Okurigana context in Blink
 
@@ -184,18 +184,14 @@ tategaki renders with furigana suppressed rather than scattered.
 `nlck` and width features; only `vert`/`vrt2` punctuation forms are carried
 across.
 
-**Font size.** 20.4 MB, and the 60k-rule web build is 5.5 MB. Two separate
-costs stack up here:
-
-* the finer placement grid and three ruby sizes cost 14,486 automatic ruby
-  glyphs against Phase 1's 3,262;
-* widening the kanji repertoire so explicit ruby can take bases the dictionary
-  never mentions adds ~5,900 real kanji outlines — **about 3.4 MB, more than
-  every explicit ruby glyph put together** (32,391 of them, 0.7 MB, because
-  ruby glyphs are composites and kanji are not).
-
-That second cost is what `--no-explicit-bases` turns off, and it is what makes
-the web build viable. Suffix sharing across `ChainSubRule`s is still untried.
+**Font size.** 20.2 MB, and the 60k-rule web build is 3.9 MB. Almost all of it
+is GSUB — 14.7 MB against 4.7 MB of outlines — so the rule set is the lever,
+which is what the web build pulls. Carrying every kanji Noto Sans JP can draw,
+rather than only the ones the rules mention, is the other 3.5 MB and what
+`--minimal-repertoire` turns off; it buys not falling back to another face on a
+rare character. The finer placement grid and three ruby sizes cost 17,264 ruby
+glyphs against Phase 1's 3,262, but those are composites and cheap. Suffix
+sharing across `ChainSubRule`s is still untried.
 
 **Build time above ~300k rules** degrades sharply: the HarfBuzz repacker fails
 around an 8.7 MB GSUB and fontTools' fallback takes 4–5× longer.

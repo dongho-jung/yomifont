@@ -165,14 +165,14 @@ name-heavy rules do not.
 
 ### A SingleSubst can overflow, and nothing will save you
 
-Adding explicit ruby stopped the build with
+Adding author-supplied ruby (since removed) stopped the build with
 
 > `OTLOffsetOverflowError: ('GSUB', 'LookupIndex:', 745, 'SubTableIndex:', 0,
 > 'ItemName:', 'Coverage')` … `Don't know how to split GSUB lookup type 1`
 
 Lookup 745 was the `vert`/`vrt2` lookup — the one that maps every ruby glyph to
-a blank so ruby does not scatter down a vertical line. Explicit ruby tripled the
-ruby inventory, so that mapping went from 14,133 entries to **43,764**, and a
+a blank so ruby does not scatter down a vertical line. That feature tripled the
+ruby inventory, so the mapping went from 14,133 entries to **43,764**, and a
 SingleSubst format 2 is laid out as
 
     SubstFormat(2)  coverageOffset(2)  glyphCount(2)  substituteGlyphIDs(2N)

@@ -6,7 +6,7 @@ EVAL_N  ?= 20000
 TRAIN   ?= 20000:150000
 
 .PHONY: help venv data font web all test eval eval-blink visual names audit bench \
-        bench-explicit tools serve clean distclean
+        tools serve clean distclean
 
 help:
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -59,7 +59,7 @@ font: data ## build dist/YomiFont-Regular.ttf
 
 web: ## build the smaller 60k-rule web font
 	$(PYPATH) $(PY) scripts/pipeline.py --limit 60000 --out $(WEB) --family "YomiFont Web" \
-	    --no-explicit-bases
+	    --minimal-repertoire
 
 all: font web ## build both fonts
 
@@ -88,9 +88,6 @@ audit: ## does every rule spell the reading it came from?
 
 bench: ## scaling benchmark, 1k -> all rules
 	$(PYPATH) $(PY) benchmarks/scale.py --sizes 1000,5000,10000,25000,50000,100000,200000,300000,0
-
-bench-explicit: ## explicit ruby scales by span length, not vocabulary
-	$(PYPATH) $(PY) benchmarks/explicit_scale.py
 
 serve: ## serve the repo for the browser compatibility harness
 	$(PY) tests/integration/server.py

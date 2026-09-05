@@ -8,11 +8,9 @@ from collections import defaultdict
 from fontTools import subset
 from fontTools.ttLib import TTFont, newTable
 
-from . import explicit as explicit_mod
 from . import gsub as gsub_mod
 from .layout import DEFAULT_POLICY, layout_word
-from .rubyglyphs import (RUBY_Y, add_blank_glyph, add_protected_glyphs,
-                         add_ruby_glyphs, variant_name)
+from .rubyglyphs import RUBY_Y, add_blank_glyph, add_ruby_glyphs, variant_name
 from .rules import Rule
 
 # Vertical metrics.  Ruby sits at RUBY_Y (940); the tallest ruby glyph in the
@@ -27,9 +25,7 @@ DEFAULT_BASE = "data/raw/NotoSansJP-Regular.ttf"
 DEFAULT_RUBY_SOURCE = "data/raw/NotoSansJP-w500.ttf"
 
 
-def _needed_chars(rules: list[Rule], policy: str = DEFAULT_POLICY,
-                  ex: "explicit_mod.Limits | None" = None,
-                  ex_alphabet: str = "", ex_grid: int = explicit_mod.GRID):
+def _needed_chars(rules: list[Rule], policy: str = DEFAULT_POLICY):
     """Characters needed from the base font, and (kana, size, x) ruby variants."""
     base_chars: set[str] = set()
     ruby: set[tuple[str, float, int]] = set()
@@ -38,14 +34,6 @@ def _needed_chars(rules: list[Rule], policy: str = DEFAULT_POLICY,
         for p in layout_word(r.groups, policy):
             base_chars.add(p.kana)   # the ruby glyph is derived from the kana
             ruby.add((p.kana, p.size, p.x))
-    if ex is not None:
-        # Explicit ruby needs its whole alphabet present as ordinary glyphs
-        # (they are the source outlines) and the delimiters kept through
-        # subsetting, plus one variant per (kana, size, offset).
-        base_chars.update(ex_alphabet)
-        base_chars.update(explicit_mod.DELIMITERS)
-        ruby.update(explicit_mod.inventory(ex_alphabet, ex, policy, ex_grid))
-        ruby.update(explicit_mod.split_inventory(ex_alphabet, ex))
     return base_chars, ruby
 
 
@@ -71,9 +59,10 @@ def extract_vert_mapping(font: TTFont) -> dict[str, str]:
     return out
 
 
-# A TrueType font addresses glyphs with a uint16, so this is a hard wall, and
-# with explicit ruby the build now runs close enough to it that the extra base
-# characters have to be budgeted rather than simply taken.
+# A TrueType font addresses glyphs with a uint16, so this is a hard wall. It
+# stopped being anywhere near binding when explicit ruby was removed -- that
+# feature's inventory was 31,701 glyphs -- but the budgeting stays, because the
+# ruby inventory grows with the rule set and nothing else would catch it.
 GLYPH_CEILING = 65535
 # The estimate below counts the characters asked for; the subsetter keeps about
 # a thousand more (vertical forms, components of kept composites), so the margin
@@ -85,17 +74,15 @@ def kanji_repertoire(base_path: str, budget: int | None = None,
                      have: set[str] | None = None) -> list[str]:
     """CJK ideographs the base font can draw, most useful first.
 
-    The automatic side only needs the characters its rules mention -- 5,055
-    kanji.  An explicit reading is most useful exactly where the dictionary has
-    nothing (unusual names, coined words, ateji), so restricting explicit-ruby
-    bases to the dictionary's own character set would remove much of the
-    feature's reason to exist.  Noto Sans JP can draw 13,313.
+    The rules only mention ~5,700 kanji, but a font that can only draw those
+    hands every rarer one back to fallback, so a page picks up a second face
+    mid-sentence at a different weight and width.  Noto Sans JP can draw
+    13,313 and the headroom easily covers all of them.
 
-    Taking all of them does not fit: it lands at ~65,600 glyphs against a
-    65,535 ceiling.  So they are ordered by how likely they are to be wanted --
-    the Unified Ideographs block, which holds every common and name kanji,
-    ahead of Extension A and the compatibility ideographs -- and the caller
-    passes whatever budget is left over.
+    They are still ordered by how likely they are to be wanted -- the Unified
+    Ideographs block, which holds every common and name kanji, ahead of
+    Extension A and the compatibility ideographs -- so that a caller passing a
+    smaller budget loses the least useful ones first.
     """
     cmap = TTFont(base_path, lazy=True).getBestCmap()
 
@@ -136,11 +123,12 @@ def make_base_font(base_path: str, chars: set[str], keep_all: bool = False) -> T
     ss = subset.Subsetter(options=opts)
     # keep ASCII and Japanese punctuation so the font is usable on its own
     extra = "".join(chr(c) for c in range(0x20, 0x7F))
-    # Japanese punctuation the font should be able to draw on its own. 《》 in
-    # particular: they stopped being explicit-ruby delimiters, and dropping
-    # them from here as well would have left ordinary 小説《ノルウェイの森》
-    # falling back to another face mid-sentence.
-    extra += "。、！？「」『』（）〈〉《》【】〔〕・ー〜　0123456789"
+    # Japanese punctuation the font should be able to draw on its own, so that
+    # ordinary 小説《ノルウェイの森》 does not fall back to another face
+    # mid-sentence.  《》 and ｜ are here on their own account now: they were
+    # kept as explicit-ruby delimiters, and removing that feature dropped ｜
+    # out of the subset entirely -- 表｜裏 came back as .notdef.
+    extra += "。、！？「」『』（）〈〉《》【】〔〕・ー〜｜　0123456789"
     ss.populate(text="".join(sorted(chars)) + extra)
     ss.subset(font)
     return font
@@ -156,30 +144,24 @@ def build_font(
     keep_glyph_names: bool = True,
     policy: str = DEFAULT_POLICY,
     ruby_source: str = DEFAULT_RUBY_SOURCE,
-    explicit: "explicit_mod.Limits | None" = explicit_mod.DEFAULT_LIMITS,
-    explicit_latin: bool = False,
-    explicit_grid: int = explicit_mod.GRID,
-    explicit_bases: bool = True,
+    full_repertoire: bool = True,
     extra_chars: str = "",
 ) -> dict:
     t0 = time.time()
-    ex_alphabet = explicit_mod.alphabet(explicit_latin) if explicit else ""
-    base_chars, ruby_needed = _needed_chars(rules, policy, explicit,
-                                            ex_alphabet, explicit_grid)
+    base_chars, ruby_needed = _needed_chars(rules, policy)
     base_chars.update(extra_chars)
-    if explicit and explicit_bases:
+    if full_repertoire:
         # Everything else is already counted: the base characters the rules
-        # need, every ruby variant, and one protected duplicate per glyph that
-        # can start a lexical rule. Whatever is left under the ceiling goes to
-        # widening the repertoire of characters an explicit base may use.
-        committed = len(base_chars) + len(ruby_needed) + len(
-            {r.seq[0] for r in rules})
+        # need and every ruby variant. Whatever is left under the ceiling goes
+        # to kanji the rules never mention, so that text using them still draws
+        # in this face instead of falling back.
+        committed = len(base_chars) + len(ruby_needed)
         budget = GLYPH_CEILING - GLYPH_MARGIN - committed
         extra = kanji_repertoire(base_path, budget, have=base_chars)
         base_chars |= set(extra)
         if verbose:
             print(f"[build] base repertoire: {committed} glyphs committed, "
-                  f"{budget} spare -> +{len(extra)} kanji for explicit bases")
+                  f"{budget} spare -> +{len(extra)} kanji")
     font = make_base_font(base_path, base_chars, keep_all=keep_all_glyphs)
     cmap = font.getBestCmap()
     vert_map = extract_vert_mapping(font)
@@ -222,81 +204,9 @@ def build_font(
     ms_lookups, ms_index = gsub_mod.build_multiple_subst_lookups(ms_pairs)
     n_ms = len(ms_lookups)
 
-    # ---- explicit ruby ---------------------------------------------------
-    # Built before the glyph order is frozen, because the base-protection
-    # duplicates are new glyphs and every coverage below is keyed on glyph id.
-    #
-    # These lookups go at the *front* of the LookupList. All that is required
-    # is that they precede the lexical chain -- lookups run in index order and
-    # explicit ruby has to claim its base span before the chain gets its pass
-    # -- and the front is the position that leaves the MultipleSubst block's
-    # own internal offsets untouched.
-    first_glyphs = sorted({seq[0] for _, seq, _, _ in prepared})
-    explicit_lookups: list = []
-    ex_info: dict = {}
-    if explicit:
-        placements = explicit_mod.placements(explicit, policy, explicit_grid)
-        protect = add_protected_glyphs(font, first_glyphs)
-        glyph_order = {g: i for i, g in enumerate(font.getGlyphOrder())}
-        delims = {cmap[ord(c)] for c in explicit_mod.DELIMITERS if ord(c) in cmap}
-        ruby_alpha = [c for c in ex_alphabet if ord(c) in cmap]
-        ruby_maps = {
-            cell: {cmap[ord(c)]: variant_name(c, *cell) for c in ruby_alpha
-                   if variant_name(c, *cell) in font["glyf"].glyphs}
-            for cell in {c for cells in placements.values() for c in cells}
-        }
-        explicit_lookups = gsub_mod.build_explicit_lookups(
-            placements,
-            hide={g: blank for g in delims},
-            protect=protect,
-            ruby=ruby_maps,
-            coverage={
-                "start": [cmap[ord(c)] for c in explicit_mod.START if ord(c) in cmap],
-                "open": [cmap[ord(c)] for c in explicit_mod.OPEN if ord(c) in cmap],
-                "close": [cmap[ord(c)] for c in explicit_mod.CLOSE if ord(c) in cmap],
-                # a base character may be anything the font can draw, kana
-                # included (｜本気（マジ）), but never a delimiter
-                "base": sorted(set(cmap.values()) - delims, key=glyph_order.__getitem__),
-                "ruby": [cmap[ord(c)] for c in ruby_alpha],
-            },
-            order=glyph_order,
-            first_index=0,
-            split={
-                "base_max": explicit.base,
-                "ruby_max": explicit.ruby,
-                "cells": {n: [(explicit_mod.SPLIT_SIZE, x)
-                              for x in explicit_mod.split_offsets(n)]
-                          for n in range(1, explicit.ruby + 1)},
-                "ruby": {cell: {cmap[ord(c)]: variant_name(c, *cell)
-                                for c in ruby_alpha
-                                if variant_name(c, *cell) in font["glyf"].glyphs}
-                         for cell in explicit_mod.split_cells(explicit)},
-                "coverage": {
-                    "mark": [cmap[ord(c)] for c in explicit_mod.SPLIT_MARK
-                             if ord(c) in cmap],
-                    "open": [cmap[ord(c)] for c in explicit_mod.SPLIT_OPEN
-                             if ord(c) in cmap],
-                    "close": [cmap[ord(c)] for c in explicit_mod.SPLIT_CLOSE
-                              if ord(c) in cmap],
-                    "base": sorted(set(cmap.values()) - delims,
-                                   key=glyph_order.__getitem__),
-                    # ideographs only: this is what lets the marker be omitted
-                    "kanji": sorted(
-                        {cmap[ord(c)] for c in kanji_repertoire(base_path)
-                         if ord(c) in cmap} - delims,
-                        key=glyph_order.__getitem__),
-                    "ruby": [cmap[ord(c)] for c in ruby_alpha],
-                },
-            },
-        )
-        ex_info = explicit_mod.cost(ruby_alpha, explicit, policy, explicit_grid)
-        ex_info["protected_glyphs"] = len(protect)
-        ex_info["lookups"] = len(explicit_lookups)
-
-    n_ex = len(explicit_lookups)
     rules_by_first: dict[str, list[tuple[list[str], int]]] = defaultdict(list)
     for base, seq, out, _ in prepared:
-        rules_by_first[seq[0]].append((seq, ms_index[(base, out)] + n_ex))
+        rules_by_first[seq[0]].append((seq, ms_index[(base, out)]))
     # longest-first inside each ruleset -- this is what makes 日本語 beat 日本
     for v in rules_by_first.values():
         v.sort(key=lambda x: -len(x[0]))
@@ -312,21 +222,16 @@ def build_font(
     vert_mapping.update({g: blank for g in new_glyphs if g.startswith("r.")})
     vert_lookup = gsub_mod.build_single_subst_lookup(vert_mapping)
 
-    # Explicit ruby first, then the MultipleSubst block, then the lexical
-    # chain: lookups run in LookupList order, and explicit ruby has to claim
-    # its base span (swapping it for protected duplicates) before the lexical
-    # lookup gets its pass. That ordering is what enforces "explicit beats
-    # automatic"; see the note above on why it goes at the front rather than
-    # in the middle.
-    all_lookups = explicit_lookups + ms_lookups + chain_lookups + [vert_lookup]
-    chain_indices = list(range(n_ex + n_ms, n_ex + n_ms + len(chain_lookups)))
-    # only the expression lookup, the last of the explicit block, is wired into
-    # the feature; the rest are reached through SubstLookupRecords
-    ccmp_indices = ([n_ex - 1] if n_ex else []) + chain_indices
+    # The MultipleSubst block first, then the lexical chain: the chain's
+    # SubstLookupRecords address the MultipleSubst lookups by index, and only
+    # the chain lookups are wired into the feature -- the rest are reached
+    # through those records.
+    all_lookups = ms_lookups + chain_lookups + [vert_lookup]
+    chain_indices = list(range(n_ms, n_ms + len(chain_lookups)))
     vert_index = len(all_lookups) - 1
     gsub_table = gsub_mod.build_gsub(
         all_lookups,
-        [("ccmp", ccmp_indices), ("vert", [vert_index]), ("vrt2", [vert_index])],
+        [("ccmp", chain_indices), ("vert", [vert_index]), ("vrt2", [vert_index])],
     )
 
     # Stats must be taken here: fontTools' overflow resolution rewrites the
@@ -407,7 +312,6 @@ def build_font(
         "gsub_bytes": table_sizes.get("GSUB", 0),
         "glyf_bytes": table_sizes.get("glyf", 0),
         "build_seconds": round(t_save - t0, 2),
-        "explicit": ex_info,
         "timing": {
             "subset": round(t_subset - t0, 2),
             "ruby": round(t_ruby - t_subset, 2),
@@ -424,12 +328,6 @@ def build_font(
                   "chain_first_glyphs", "multiple_subst_lookups",
                   "multiple_subst_mappings"):
             print(f"         {k:26s} {info[k]}")
-        if ex_info:
-            print(f"         {'explicit ruby':26s} base<={ex_info['base_max']} "
-                  f"ruby<={ex_info['ruby_max']} grid={ex_info['grid']} "
-                  f"alphabet={ex_info['alphabet']} -> {ex_info['expressions']} rules, "
-                  f"{ex_info['ruby_glyphs']} glyphs, "
-                  f"{ex_info['protected_glyphs']} protected")
         print(f"         {'font size':26s} {size/1e6:.2f} MB "
               f"(GSUB {info['gsub_bytes']/1e6:.2f} MB, glyf {info['glyf_bytes']/1e6:.2f} MB)")
         print(f"         {'build time':26s} {info['build_seconds']}s  {info['timing']}")

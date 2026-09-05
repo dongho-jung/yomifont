@@ -12,7 +12,7 @@ draws or does not draw is then purely a rasterisation question.
     C  Phase 2 shape:  composite(composite(kana, scale .5)), offset y=940
     D  as C but y=900
     E  as C but positive x offset only
-    F  as C with a large negative x offset (what explicit ruby needs)
+    F  as C with a large negative x offset
 """
 from __future__ import annotations
 

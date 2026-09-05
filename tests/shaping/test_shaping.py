@@ -23,9 +23,8 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from corpus import (ABSTAIN, EXPLICIT, EXPLICIT_ASCII,  # noqa: E402
-                    EXPLICIT_MALFORMED, EXPLICIT_SPLIT, NO_RUBY, POC,
-                    SENTENCES, SPLIT_UNMARKED, STABILIZATION,
+from corpus import (ABSTAIN, NO_RUBY, POC,  # noqa: E402
+                    PUNCTUATION_INTACT, SENTENCES, STABILIZATION,
                     STABILIZATION_ABSTAIN)
 from shaper import (base_text, ruby_runs, shape_coretext,  # noqa: E402
                     shape_harfbuzz, total_advance)
@@ -222,268 +221,32 @@ def test_no_gpos_table():
 
 
 # --------------------------------------------------------------------------
-# Explicit Ruby
+# Punctuation integrity
+#
+# Author-supplied ruby used ｜ | （ ( ） ) as delimiters and hid them from the
+# output.  With the feature gone they are ordinary characters again, and the
+# risk in removing a feature is leaving half of it behind -- a stray rule that
+# still eats a bracket.  These assert the delimiters are drawn, take their
+# normal width, and pick up no ruby of their own.
 
 
-def _reading(glyphs) -> str:
-    return "".join(g.ruby_char for g in glyphs if g.ruby_char is not None)
-
-
-@pytest.mark.parametrize("text,base_em,reading", EXPLICIT)
-def test_explicit_reading(text, base_em, reading):
-    """The user's reading is rendered verbatim, with no dictionary consulted."""
-    assert _reading(shape_harfbuzz(FONT, text)) == reading, text
-
-
-@pytest.mark.parametrize("text,base_em,reading", EXPLICIT)
-def test_explicit_markup_is_invisible_and_weightless(text, base_em, reading):
-    """The three delimiters draw nothing and take no horizontal space."""
+@pytest.mark.parametrize("text", PUNCTUATION_INTACT)
+def test_punctuation_reaches_the_reader(text):
     glyphs = shape_harfbuzz(FONT, text)
-    blanks = [g for g in glyphs if g.name == "ruby.blank"]
-    assert len(blanks) == 3, f"{text}: expected 3 hidden delimiters, got {len(blanks)}"
-    assert all(g.advance == 0 for g in blanks)
-    assert all(g.advance == 0 for g in glyphs if g.ruby_char is not None)
-    if base_em is not None:
-        assert total_advance(glyphs) == base_em * 1000, text
-
-
-@pytest.mark.parametrize("text,base_em,reading", EXPLICIT)
-def test_explicit_clusters_cover_source(text, base_em, reading):
-    """Copy, select and search still operate on the markup the user typed."""
-    clusters = {g.cluster for g in shape_harfbuzz(FONT, text)}
-    assert min(clusters) == 0 and max(clusters) < len(text)
-
-
-@pytest.mark.parametrize("text,base_em,reading", EXPLICIT)
-def test_explicit_suppresses_automatic_ruby(text, base_em, reading):
-    """Never automatic ruby *and* explicit ruby on the same base."""
-    assert _reading(shape_harfbuzz(FONT, text)) == reading, text
-
-
-def test_explicit_overrides_a_word_the_dictionary_knows():
-    assert ruby_runs(shape_harfbuzz(FONT, "東京")) == ["とうきょう"]
-    assert _reading(shape_harfbuzz(FONT, "｜東京（エド）")) == "エド"
-    assert ruby_runs(shape_harfbuzz(FONT, "宇宙")) == ["うちゅう"]
-    assert _reading(shape_harfbuzz(FONT, "｜宇宙（そら）")) == "そら"
-
-
-def test_automatic_ruby_still_works_around_an_explicit_span():
-    glyphs = shape_harfbuzz(FONT, "昨日、｜月（ライト）を見た。")
-    assert ruby_runs(glyphs)[0] == "きのう"
-    assert "ライト" in "".join(ruby_runs(glyphs))
-    # and two explicit spans in a row do not interfere
-    assert _reading(shape_harfbuzz(FONT, "｜月（ライト）と｜宇宙（そら）")) == "ライトそら"
-
-
-@pytest.mark.parametrize("ascii_text,fullwidth_text", EXPLICIT_ASCII)
-def test_ascii_syntax_is_identical(ascii_text, fullwidth_text):
-    """Both syntaxes must reach the same glyphs, not merely look similar."""
-    a = shape_harfbuzz(FONT, ascii_text)
-    f = shape_harfbuzz(FONT, fullwidth_text)
-    assert [g.name for g in a] == [g.name for g in f], ascii_text
-
-
-def _markup_hidden(glyphs) -> bool:
-    """Did anything the user typed stop being drawn?"""
-    return any(g.name == "ruby.blank" for g in glyphs)
-
-
-def _protected(glyphs) -> bool:
-    """Did the base span get claimed, suppressing automatic ruby on it?
-
-    Distinct from `_markup_hidden`: claiming the span is invisible -- the
-    duplicate draws exactly like the original -- and it is what the Blink
-    fail-safe does on its own when it can see ｜BASE（ but not the reading.
-    """
-    return any(g.name.startswith("x.") for g in glyphs)
-
-
-@pytest.mark.parametrize("text,why", EXPLICIT_MALFORMED)
-def test_malformed_markup_is_left_alone(text, why):
-    """Broken markup stays visible -- never partly transformed.
-
-    Asserted as "nothing the user typed stopped being drawn", not as "the glyph
-    stream is the no-GSUB stream", for two reasons. Several of these cases
-    contain ordinary words and *automatic* ruby is supposed to keep working on
-    them -- 月（ライトという意味） should still read 意味 as いみ. And a
-    well-formed prefix legitimately claims its base span (see the Blink
-    fail-safe), which is invisible.
-    """
-    glyphs = shape_harfbuzz(FONT, text)
-    assert not _markup_hidden(glyphs), f"{text} ({why}) hid part of the markup"
-    for ch in text:
-        if ch in "｜|（(）)":
-            assert _plain_glyph_names(ch)[0] in [g.name for g in glyphs], \
-                f"{text} ({why}): {ch} disappeared"
-
-
-def test_protected_duplicates_draw_identically():
-    """Claiming a base span must be invisible.
-
-    The fail-safe swaps base glyphs for duplicates whenever it sees ｜BASE（,
-    including when the reading never arrives. That is only acceptable if the
-    duplicate is indistinguishable from the original.
-    """
-    from fontTools.pens.recordingPen import RecordingPen
-    from fontTools.ttLib import TTFont
-
-    font = TTFont(FONT)
-    gs = font.getGlyphSet()
-    hmtx = font["hmtx"]
-    dups = [n for n in font.getGlyphOrder() if n.startswith("x.")]
-    assert dups, "expected protected duplicates"
-    for name in dups[:400]:
-        orig = name[2:]
-        assert hmtx[name] == hmtx[orig], name
-        a, b = RecordingPen(), RecordingPen()
-        gs[name].draw(a)
-        gs[orig].draw(b)
-        # the duplicate is a one-component composite of the original
-        assert a.value and (a.value == b.value
-                            or a.value == [("addComponent", (orig, (1, 0, 0, 1, 0, 0)))]), name
-
-
-def test_blink_failsafe_claims_the_base_from_the_prefix_alone():
-    """｜BASE（ with no readable reading must still suppress automatic ruby.
-
-    Blink never shows one rule the whole expression, but it does keep
-    ｜BASE（ together (tests/integration/itemize_probe.html). Without this the
-    author's ｜宇宙（そら） renders in Chrome as visible markup plus うちゅう --
-    the dictionary reading they explicitly replaced.
-    """
-    # The reading is unusable, so the full expression cannot match. What must
-    # not happen is the *base* falling back to its dictionary reading; ruby on
-    # the rest of the string (漢字 is an ordinary word) is fine and expected.
-    for text, base, suppressed in [("｜宇宙（漢字）", "宇宙", "うちゅう"),
-                                   ("｜東京（漢字）", "東京", "とうきょう")]:
-        glyphs = shape_harfbuzz(FONT, text)
-        assert _protected(glyphs), f"{text}: base span was not claimed"
-        assert suppressed not in _reading(glyphs), \
-            f"{text} showed {suppressed}, the reading the author replaced"
-    # ...and the base still reads normally when it is not annotated
-    assert ruby_runs(shape_harfbuzz(FONT, "宇宙")) == ["うちゅう"]
-    assert ruby_runs(shape_harfbuzz(FONT, "東京")) == ["とうきょう"]
-
-
-def test_explicit_ruby_reuses_the_shared_inventory():
-    """The same kana in different expressions comes from one glyph family."""
-    names = set()
-    for text in ["｜月（ライト）", "｜光（ライト）", "｜夜神月（やがみライト）"]:
-        for g in shape_harfbuzz(FONT, text):
-            if g.ruby_char == "ラ":
-                names.add(g.name)
-    assert names, "expected ラ ruby glyphs"
-    assert all(n.startswith("r.30E9.") for n in names), names
-
-
-@pytest.mark.parametrize("text,base_em,reading", EXPLICIT_SPLIT)
-def test_split_form_reading(text, base_em, reading):
-    """〇BASE《RUBY》 renders the author's reading and keeps the line width."""
-    glyphs = shape_harfbuzz(FONT, text)
-    assert _reading(glyphs) == reading, text
-    if base_em is not None:
-        assert total_advance(glyphs) == base_em * 1000, text
-
-
-@pytest.mark.parametrize("text,base_em,reading", EXPLICIT_SPLIT)
-def test_split_form_survives_being_split(text, base_em, reading):
-    """The whole point: shaped as two buffers, it still works.
-
-    Blink hands the shaper the marker+base+opener in one run and the
-    reading+closer in another. Shaping the halves separately and concatenating
-    is what that looks like, and it has to match the single-buffer result.
-    """
-    cut = max(text.find("（"), text.find("(")) + 1
-    halves = shape_harfbuzz(FONT, text[:cut]) + shape_harfbuzz(FONT, text[cut:])
-    assert _reading(halves) == reading, text
-    assert total_advance(halves) == total_advance(shape_harfbuzz(FONT, text)), text
-
-
-def test_split_form_leaves_ordinary_parentheses_alone():
-    """《》 is why no trailing marker is needed; （） would have swallowed these."""
-    for text in ["私（わたし）", "月（ライト）", "（ですます）", "価格（税別）"]:
-        glyphs = shape_harfbuzz(FONT, text)
-        assert not _markup_hidden(glyphs), text
-
-
-@pytest.mark.parametrize("text", SPLIT_UNMARKED)
-def test_split_form_needs_both_markers(text):
-    """Ordinary prose must not lose a character to the split rules.
-
-    Both markers earn their place here. Without the one after the base,
-    `BASE（` matches 価格（税別） and eats the bracket; without the one after the
-    close, `KANA+ ）` matches 私（わたし） and swallows the whole parenthesis.
-    """
-    glyphs = shape_harfbuzz(FONT, text)
-    assert not _markup_hidden(glyphs), text
-    # every delimiter the user typed is still drawn; automatic ruby on the
-    # ordinary words in these strings is expected and fine
+    names = [g.name for g in glyphs]
+    assert "ruby.blank" not in names, f"{text}: something was hidden"
     for ch in text:
         if ch in "｜|（(）)《》":
-            assert _plain_glyph_names(ch)[0] in [g.name for g in glyphs], \
-                f"{text}: {ch} disappeared"
+            assert _plain_glyph_names(ch)[0] in names, f"{text}: {ch} disappeared"
 
 
-def test_split_form_after_kana():
-    """An expression after a particle -- what the leading-｜ form cannot do.
-
-    Its marker is Script=Common and a preceding kana run absorbs it, so the
-    first rule never matches. A marker placed after the base has nothing to be
-    absorbed by: the base itself starts the run.
-    """
-    glyphs = shape_harfbuzz(FONT, "私は月｜（ライト）｜を見た。")
-    assert "ライト" in _reading(glyphs)
-    # 私 は 月 を 見 た 。 -- the marker and both brackets are weightless
-    assert total_advance(glyphs) == 7 * 1000
-
-
-def test_split_form_base_is_the_kanji_run():
-    """The base is the kanji before the marker, whether or not the engine splits.
-
-    Admitting kana would make 私は月｜（ライト）｜ take 私は月 in an engine that
-    sees the whole line and 月 in one that itemises it -- the same text
-    rendering two ways.
-    """
-    for text, base_em in [("私は月｜（ライト）｜", 3), ("東京都｜（とうきょうと）｜", 3)]:
-        assert total_advance(shape_harfbuzz(FONT, text)) == base_em * 1000, text
-
-
-def test_line_break_inside_an_expression_fails_safe():
-    """A break splits the expression into two independently shaped halves.
-
-    Neither half can match, so both must render as the literal markup the user
-    typed.  What must never happen is a half-transformed result: ruby stranded
-    on one line, or a base whose reading went to the next line.
-    """
-    text = "｜日本語能力試験（にほんごのうりょくしけん）"
-    for cut in range(1, len(text)):
-        for half in (text[:cut], text[cut:]):
-            glyphs = shape_harfbuzz(FONT, half)
-            assert not _markup_hidden(glyphs), \
-                f"break at {cut} hid markup in {half!r}"
-    # The base half may still pick up an *automatic* reading -- that is correct,
-    # it is an ordinary word once the markup is gone -- but the delimiters must
-    # never vanish, which is what would strand ruby on the wrong line.
-    for cut in range(1, len(text)):
-        for half in (text[:cut], text[cut:]):
-            names = [g.name for g in shape_harfbuzz(FONT, half)]
-            for ch in half:
-                if ch in "｜（）":
-                    assert _plain_glyph_names(ch)[0] in names, (cut, half, ch)
-
-
-def test_explicit_ruby_needs_no_dictionary():
-    """A base string that cannot be in any dictionary still takes a reading."""
-    for base, reading in [("超絶暗黒剣", "ダークネスブレード"),
-                          ("未知語", "オリジナルヨミ"),
-                          # kokuji and a compound no lexicon has. Which rare
-                          # kanji survive depends on the glyph budget left over
-                          # after the rules, so these are ones the shipping
-                          # repertoire keeps; see docs/explicit-ruby.md.
-                          ("掾辻凪", "キンビョウエン"),
-                          ("辻凪", "つじなぎ")]:
-        text = f"｜{base}（{reading}）"
-        assert _reading(shape_harfbuzz(FONT, text)) == reading, text
+@pytest.mark.parametrize("text", PUNCTUATION_INTACT)
+def test_punctuation_keeps_its_advance(text):
+    """No delimiter is weightless.  Automatic ruby on the words is fine."""
+    delims = {_plain_glyph_names(ch)[0] for ch in text if ch in "｜|（(）)《》"}
+    for g in shape_harfbuzz(FONT, text):
+        if g.name in delims:
+            assert g.advance > 0, f"{text}: {g.name} lost its advance"
 
 
 # --------------------------------------------------------------------------
@@ -500,10 +263,8 @@ def test_coretext_matches_harfbuzz(text, _expected):
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="CoreText is macOS only")
-@pytest.mark.parametrize(
-    "text", [t for t, _, _ in EXPLICIT] + [t for t, _ in EXPLICIT_MALFORMED]
-    + [t for t, _ in EXPLICIT_ASCII])
-def test_coretext_matches_harfbuzz_explicit(text):
+@pytest.mark.parametrize("text", PUNCTUATION_INTACT)
+def test_coretext_matches_harfbuzz_punctuation(text):
     hb = shape_harfbuzz(FONT, text)
     ct = shape_coretext(FONT, text)
     assert [g.name for g in ct] == [g.name for g in hb], text

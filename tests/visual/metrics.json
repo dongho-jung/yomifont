@@ -1,268 +1,280 @@
 {
- "before (eb9535b)": {
+ "Phase 1": {
   "月": {
-   "ruby_groups": 0,
+   "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": null,
-   "max_overhang_left_em": null,
+   "ruby_to_base_gap_em": 0.0955,
+   "max_overhang_left_em": -0.032,
    "worst_spacing_deviation": 0.0
   },
   "一ヶ月": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.1115,
-   "max_overhang_left_em": -0.0585,
-   "worst_spacing_deviation": 0.7838
+   "ruby_to_base_gap_em": 0.076,
+   "max_overhang_left_em": -0.063,
+   "worst_spacing_deviation": 0.7878
   },
   "月曜日": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0955,
-   "max_overhang_left_em": -0.0975,
-   "worst_spacing_deviation": 0.0619
+   "ruby_to_base_gap_em": 0.06,
+   "max_overhang_left_em": -0.304,
+   "worst_spacing_deviation": 0.0718
   },
   "今月": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0555,
-   "max_overhang_left_em": -0.132,
-   "worst_spacing_deviation": 0.1429
+   "ruby_to_base_gap_em": 0.02,
+   "max_overhang_left_em": -0.0865,
+   "worst_spacing_deviation": 0.0676
   },
   "新宿区": {
-   "ruby_groups": 0,
-   "min_group_gap_em": null,
-   "group_gaps_em": [],
-   "ruby_to_base_gap_em": null,
-   "max_overhang_left_em": null,
-   "worst_spacing_deviation": 0.0
+   "ruby_groups": 3,
+   "min_group_gap_em": -0.146,
+   "group_gaps_em": [
+    -0.146,
+    0.3668
+   ],
+   "ruby_to_base_gap_em": 0.0275,
+   "max_overhang_left_em": 0.1955,
+   "worst_spacing_deviation": 0.0411
   },
   "東京都新宿区": {
-   "ruby_groups": 1,
-   "min_group_gap_em": null,
-   "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.064,
-   "max_overhang_left_em": -0.1455,
-   "worst_spacing_deviation": 0.0979
+   "ruby_groups": 4,
+   "min_group_gap_em": -0.146,
+   "group_gaps_em": [
+    -0.116,
+    -0.146,
+    0.3668
+   ],
+   "ruby_to_base_gap_em": 0.0265,
+   "max_overhang_left_em": -0.1005,
+   "worst_spacing_deviation": 0.0411
   },
   "東京都渋谷区": {
-   "ruby_groups": 2,
-   "min_group_gap_em": 0.3405,
+   "ruby_groups": 3,
+   "min_group_gap_em": 0.448,
    "group_gaps_em": [
-    0.3405
+    0.448,
+    0.6458
    ],
-   "ruby_to_base_gap_em": 0.064,
-   "max_overhang_left_em": -0.1455,
-   "worst_spacing_deviation": 0.0998
+   "ruby_to_base_gap_em": 0.0265,
+   "max_overhang_left_em": -0.1005,
+   "worst_spacing_deviation": 0.141
   },
   "東京大学": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.059,
-   "max_overhang_left_em": -0.0955,
-   "worst_spacing_deviation": 0.1825
+   "ruby_to_base_gap_em": 0.0225,
+   "max_overhang_left_em": 0.1495,
+   "worst_spacing_deviation": 0.14
   },
   "東京": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0682,
-   "max_overhang_left_em": -0.084,
-   "worst_spacing_deviation": 0.0513
+   "ruby_to_base_gap_em": 0.027,
+   "max_overhang_left_em": 0.1495,
+   "worst_spacing_deviation": 0.0401
   },
   "京都": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.064,
-   "max_overhang_left_em": -0.127,
-   "worst_spacing_deviation": 0.0268
+   "ruby_to_base_gap_em": 0.027,
+   "max_overhang_left_em": -0.08,
+   "worst_spacing_deviation": 0.0381
   },
   "今日": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.062,
-   "max_overhang_left_em": -0.177,
-   "worst_spacing_deviation": 0.0234
+   "ruby_to_base_gap_em": 0.025,
+   "max_overhang_left_em": -0.33,
+   "worst_spacing_deviation": 0.0279
   },
   "日本語": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.079,
-   "max_overhang_left_em": -0.1575,
-   "worst_spacing_deviation": 0.118
+   "ruby_to_base_gap_em": 0.042,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.068
   },
   "学校": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0675,
-   "max_overhang_left_em": -0.079,
-   "worst_spacing_deviation": 0.0759
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.032,
+   "worst_spacing_deviation": 0.06
   },
   "図書館": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.063,
-   "max_overhang_left_em": -0.1455,
-   "worst_spacing_deviation": 0.0742
+   "ruby_to_base_gap_em": 0.026,
+   "max_overhang_left_em": -0.3505,
+   "worst_spacing_deviation": 0.0844
   },
   "日本語能力試験": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.063,
-   "max_overhang_left_em": -0.1075,
-   "worst_spacing_deviation": 0.1025
+   "ruby_to_base_gap_em": 0.0265,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.1141
   },
   "国際交流基金": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.055,
-   "max_overhang_left_em": -0.132,
-   "worst_spacing_deviation": 0.1181
+   "ruby_to_base_gap_em": 0.017,
+   "max_overhang_left_em": -0.0865,
+   "worst_spacing_deviation": 0.0759
   },
   "日本語学校": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0675,
-   "max_overhang_left_em": -0.1075,
-   "worst_spacing_deviation": 0.1181
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.0964
   },
   "京都大学病院": {
    "ruby_groups": 2,
-   "min_group_gap_em": 0.2163,
+   "min_group_gap_em": -0.068,
    "group_gaps_em": [
-    0.2163
+    -0.068
    ],
-   "ruby_to_base_gap_em": 0.059,
-   "max_overhang_left_em": -0.127,
-   "worst_spacing_deviation": 0.158
+   "ruby_to_base_gap_em": 0.022,
+   "max_overhang_left_em": -0.08,
+   "worst_spacing_deviation": 0.1355
   },
   "国際交流基金東京": {
    "ruby_groups": 2,
-   "min_group_gap_em": 0.1575,
+   "min_group_gap_em": -0.123,
    "group_gaps_em": [
-    0.1575
+    -0.123
    ],
-   "ruby_to_base_gap_em": 0.055,
-   "max_overhang_left_em": -0.132,
-   "worst_spacing_deviation": 0.1181
+   "ruby_to_base_gap_em": 0.017,
+   "max_overhang_left_em": -0.0865,
+   "worst_spacing_deviation": 0.0759
   },
   "行く": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.092,
-   "max_overhang_left_em": -0.3085,
+   "ruby_to_base_gap_em": 0.0545,
+   "max_overhang_left_em": -0.313,
    "worst_spacing_deviation": 0.0
   },
   "行う": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0705,
-   "max_overhang_left_em": 0.203,
-   "worst_spacing_deviation": 0.077
+   "ruby_to_base_gap_em": 0.0335,
+   "max_overhang_left_em": 0.1975,
+   "worst_spacing_deviation": 0.0739
   },
   "食べる": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.078,
-   "max_overhang_left_em": -0.299,
+   "ruby_to_base_gap_em": 0.041,
+   "max_overhang_left_em": -0.3005,
    "worst_spacing_deviation": 0.0
   },
   "取り戻す": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.1215,
-   "max_overhang_left_em": -0.3455,
-   "worst_spacing_deviation": 0.5198
+   "ruby_to_base_gap_em": 0.085,
+   "max_overhang_left_em": -0.3505,
+   "worst_spacing_deviation": 0.5168
   },
   "承る": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.1269,
-   "max_overhang_left_em": 0.2403,
-   "worst_spacing_deviation": 0.1351
+   "ruby_to_base_gap_em": 0.0825,
+   "max_overhang_left_em": 0.667,
+   "worst_spacing_deviation": 0.1119
   },
   "富士山": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.068,
-   "max_overhang_left_em": -0.118,
-   "worst_spacing_deviation": 0.1508
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.521,
+   "worst_spacing_deviation": 0.1688
   },
   "新幹線": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0705,
-   "max_overhang_left_em": -0.163,
-   "worst_spacing_deviation": 0.2026
+   "ruby_to_base_gap_em": 0.0335,
+   "max_overhang_left_em": -0.1185,
+   "worst_spacing_deviation": 0.1331
   },
   "駅前": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0675,
-   "max_overhang_left_em": -0.1045,
-   "worst_spacing_deviation": 0.1054
+   "ruby_to_base_gap_em": 0.031,
+   "max_overhang_left_em": -0.058,
+   "worst_spacing_deviation": 0.066
   },
   "自転車": {
    "ruby_groups": 1,
    "min_group_gap_em": null,
    "group_gaps_em": [],
-   "ruby_to_base_gap_em": 0.0565,
-   "max_overhang_left_em": -0.156,
-   "worst_spacing_deviation": 0.1592
+   "ruby_to_base_gap_em": 0.019,
+   "max_overhang_left_em": -0.362,
+   "worst_spacing_deviation": 0.1941
   },
   "私は昨日東京へ行きました。": {
-   "ruby_groups": 3,
-   "min_group_gap_em": 0.277,
+   "ruby_groups": 4,
+   "min_group_gap_em": 0.198,
    "group_gaps_em": [
-    0.277,
-    1.4003
+    1.131,
+    0.198,
+    1.1605
    ],
-   "ruby_to_base_gap_em": 0.0682,
-   "max_overhang_left_em": -2.177,
-   "worst_spacing_deviation": 0.0603
+   "ruby_to_base_gap_em": 0.027,
+   "max_overhang_left_em": 0.2225,
+   "worst_spacing_deviation": 0.0748
   },
   "日本語能力試験の勉強をしています。": {
    "ruby_groups": 2,
-   "min_group_gap_em": 1.0907,
+   "min_group_gap_em": 1.3,
    "group_gaps_em": [
-    1.0907
+    1.3
    ],
-   "ruby_to_base_gap_em": 0.061,
-   "max_overhang_left_em": -0.1075,
-   "worst_spacing_deviation": 0.1025
+   "ruby_to_base_gap_em": 0.0245,
+   "max_overhang_left_em": -0.562,
+   "worst_spacing_deviation": 0.1141
   },
   "国際交流基金は東京都新宿区にあります。": {
-   "ruby_groups": 2,
-   "min_group_gap_em": 1.219,
+   "ruby_groups": 5,
+   "min_group_gap_em": -0.146,
    "group_gaps_em": [
-    1.219
+    1.127,
+    -0.116,
+    -0.146,
+    0.3668
    ],
-   "ruby_to_base_gap_em": 0.055,
-   "max_overhang_left_em": -0.132,
-   "worst_spacing_deviation": 0.1181
+   "ruby_to_base_gap_em": 0.017,
+   "max_overhang_left_em": -0.0865,
+   "worst_spacing_deviation": 0.0759
   }
  },
- "after (stabilization)": {
+ "Phase 2": {
   "月": {
    "ruby_groups": 0,
    "min_group_gap_em": null,

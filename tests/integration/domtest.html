@@ -28,22 +28,16 @@
 <h2>automatic ruby</h2>
 <div class="r">東京 日本語 図書館 市場</div>
 
-<h2>explicit ruby — fullwidth ｜BASE（RUBY）</h2>
-<div class="r">｜月（ライト） ｜宇宙（そら） ｜本気（マジ）</div>
+<h2>okurigana: correct in this DOM path, absent in Chrome (the run is split)</h2>
+<div class="r">生きる 生まれた 行った 一ヶ月</div>
 
-<h2>explicit ruby — ascii |BASE(RUBY)</h2>
-<div class="r">|月(ライト) |宇宙(そら) |本気(マジ)</div>
+<h2>all-kanji words: one run everywhere, so every engine shows these</h2>
+<div class="r">東京都新宿区 日本語能力試験 六本木</div>
 
-<h2>explicit overrides automatic, and automatic keeps working around it</h2>
-<div class="r">東京 ｜東京（エド） 昨日、｜月（ライト）を見た。</div>
+<h2>brackets and bars are ordinary text again</h2>
+<div class="r">私（わたし） 価格（税別） 表｜裏 f(x) = |x| + 1</div>
 
-<h2>kana base — the only shape Blink can shape whole</h2>
-<div class="r">｜つき（ツキ） ｜ほんき（マジ）</div>
-
-<h2>malformed markup stays visible</h2>
-<div class="r">｜月（ライト ｜月（） 月（ライトという意味）</div>
-
-<h2>line wrap: a break inside an expression shows the markup, never half of it</h2>
-<div class="r narrow">｜日本語能力試験（にほんごのうりょくしけん）の勉強</div>
+<h2>line wrap</h2>
+<div class="r narrow">国際交流基金は東京都新宿区にあります。</div>
 </body>
 </html>

@@ -103,7 +103,7 @@ def build_cases():
     cases = [(f"transition/{name}", text, "bare script transition")
              for name, text in TRANSITIONS]
     for label, sep, note in SEPARATORS:
-        # Han SEP Katakana: the shape explicit ruby actually needs
+        # Han SEP Katakana: a kanji base followed by a kana reading
         cases.append((f"han_sep_kata/{label}", HAN + sep + KATA, note))
         # Han SEP Hiragana
         cases.append((f"han_sep_hira/{label}", HAN + sep + HIRA, note))
@@ -112,7 +112,7 @@ def build_cases():
         # the full five-part expression shape, with the candidate as opener
         if sep:
             cases.append((f"expr/{label}", sep + HAN + sep + KATA + sep, note))
-    # The prefix an explicit-ruby expression leaves in the *first* Blink run
+    # A kanji run followed by Common-script punctuation, which is the one
     # once the kana have been split off. If this is one run, the font can still
     # see the marker and the base, and can suppress automatic ruby on it even
     # when it cannot render the reading.

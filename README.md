@@ -6,12 +6,8 @@ YomiFont compiles lexical and morphological reading rules into OpenType shaping
 tables to display furigana without modifying the underlying text or requiring a
 runtime analyzer.
 
-It does this two ways:
-
-| | |
-|---|---|
-| **Automatic Ruby** | YomiFont determines a safe reading from lexical data, and abstains when it cannot |
-| **Explicit Ruby** | the author supplies the reading directly in the text: `｜月（ライト）` |
+YomiFont determines a safe reading from lexical data, and abstains when it
+cannot — precision over coverage, always.
 
 Install the font, select it, and type ordinary Japanese:
 
@@ -46,11 +42,10 @@ engine can see determines their reading.
 | **Precision** — of the readings it renders, how many are right | **99.96 %** |
 | **Wrong readings** in 20,000 held-out sentences | **20** |
 | Coverage — kanji tokens that receive ruby | 79.1 % |
-| Coverage under Blink's script segmentation | 48.9 % (precision 99.87 %) |
+| Coverage under Blink's script segmentation | 49.0 % (precision 99.86 %) |
 | Safe lexical rules | 460,082 (incl. 153,745 place names) |
-| Explicit-ruby rules (no vocabulary at all) | 128 |
-| Total glyphs / ruby glyphs | 63,053 / 47,302 |
-| Font size | 20.4 MB (GSUB 14.9 MB) |
+| Total glyphs / ruby glyphs | 30,966 / 17,264 |
+| Font size | 20.2 MB (GSUB 14.7 MB) |
 | GPOS table | **none — the font has no GPOS at all** |
 | OpenType Sanitizer (what Chrome and Firefox require) | PASS |
 
@@ -79,51 +74,28 @@ its place.
 Proper nouns are included when their reading is determined — 東京, 富士山,
 任天堂 — because the criterion is determinism, not lexical category.
 
-## Explicit Ruby
+## What Chrome does not show
 
-For everything the automatic side gives up — ateji, 義訓, names, coined words,
-or simply a reading you want — write it into the text:
+Blink itemises text into script runs *before* shaping, so no rule can match
+across a Han↔Kana boundary. `生きる` reaches the font as `生` and `きる`
+separately, and the okurigana that identifies the verb is in a different
+shaping call — so it gets no ruby, even though the reading is not in doubt.
+`一ヶ月` splits three ways, because `ヶ` is Katakana.
 
-```
-   ライト        そら          マジ          とも
-   月            宇宙          本気          強敵
+All-kanji words are unaffected: `東京都新宿区`, `日本語能力試験` and `六本木`
+are one run everywhere and render in every engine.
 
-｜月（ライト）  ｜宇宙（そら）  ｜本気（マジ）  ｜強敵（とも）
-|月(ライト)     |宇宙(そら)     |本気(マジ)     |強敵(とも)
-```
+This is measured, not inferred — across 30 candidate separators including
+joiners, variation selectors and PUA, none of which bridges the boundary. The
+cost is coverage, never correctness: Chrome gets 49.0 % coverage against
+Safari's 79.1 %, at 99.86 % precision against 99.96 %. See
+[docs/compatibility.md](docs/compatibility.md).
 
-Both syntaxes are equivalent, and the markup disappears when it renders. The
-explicit reading always wins:
-
-```
-東京           -> とうきょう      automatic
-｜東京（エド）  -> エド            explicit, and the automatic reading is suppressed
-```
-
-Automatic ruby keeps working around it — `昨日、｜月（ライト）を見た。` sets
-きのう over 昨日, ライト over 月 and み over 見.
-
-**No dictionary is involved.** The rules match the *shape* of an expression —
-how many base characters, how many ruby characters — so a base string the font
-has never seen still takes a reading:
-
-```
-｜超絶暗黒剣（ダークネスブレード）
-```
-
-128 rules cover every combination up to **base ≤ 8, ruby ≤ 16**, over a
-183-character kana alphabet, reusing the same ruby glyphs, the same layout and
-the same three sizes as the automatic side. Out-of-range or malformed markup is
-left visibly unchanged, never partly transformed.
-
-The catch is Chrome: Blink itemises text into script runs before shaping, so
-an expression that crosses a Han↔Kana boundary is never seen whole and gets no
-ruby. Kana bases work; kanji bases do not — measured across 30 candidate
-separators including joiners, variation selectors and PUA, none of which
-bridges it. Chrome does at least suppress the automatic reading on an annotated
-base, so it shows the markup rather than a reading the author replaced. Safari,
-CoreText and HarfBuzz render all cases. [docs/explicit-ruby.md](docs/explicit-ruby.md) has the per-engine
-measurements and the reasoning behind the limits.
+There was an Explicit Ruby feature — `｜月（ライト）｜`, author-supplied
+readings resolved entirely in GSUB, which did work around this in Chrome. It
+was removed: marking up every word by hand was more trouble than it was worth,
+and its glyph inventory was 31,701 of the font's 63,070 glyphs. It is in the
+history at `6ca0452` if it is ever wanted back.
 
 ## Typography
 
@@ -152,27 +124,26 @@ make venv          # virtualenv + dependencies
 make data          # fetch JMdict, JMnedict, Noto Sans JP, Tatoeba
 make font          # dist/YomiFont-Regular.ttf
 make web           # dist/YomiFont-Web-Regular.ttf
-make test          # 371 shaping tests, HarfBuzz + CoreText
+make test          # 271 shaping tests, HarfBuzz + CoreText
 make eval          # precision / coverage against UniDic
 make eval-blink    # same, modelling Blink script segmentation
 make visual        # typography contact sheet + metrics
 make bench         # scaling benchmark, by rule count
-make bench-explicit  # explicit ruby, by span length
 make audit         # does every rule spell the reading it came from?
 ```
 
-Two builds, because 16 MB is not a `@font-face` download:
+Two builds, because 20 MB is not a `@font-face` download:
 
-| | rules | explicit-ruby bases | glyphs | size |
+| | rules | kanji | glyphs | size |
 |---|---|---|---|---|
-| `YomiFont-Regular.ttf` | 325,492 | 10,940 kanji | 63,053 | 16.1 MB |
-| `YomiFont-Web-Regular.ttf` | 60,000 (longest) | 2,907 kanji (only what its rules use) | 50,126 | 5.5 MB |
+| `YomiFont-Regular.ttf` | 460,082 | 13,312 (everything Noto Sans JP draws) | 30,968 | 20.2 MB |
+| `YomiFont-Web-Regular.ttf` | 60,000 (longest) | 2,947 (only what its rules use) | 16,925 | 3.9 MB |
 
-The web build trims two things. Truncating the rule set costs automatic
-coverage; skipping the widened kanji repertoire costs explicit *bases*, and
-that is the bigger size lever — those extra outlines cost about 3.4 MB while
-all 32,391 explicit ruby glyphs cost 0.7 MB, because ruby glyphs are
-composites and kanji are not. Explicit ruby itself is present in both.
+The web build trims two things, and `--minimal-repertoire` is the knob for the
+second. Truncating the rule set is most of the size — GSUB is 14.7 MB of the
+full build against 2.3 MB here. Dropping the kanji the rules never mention
+saves 3.5 MB of outlines, at the cost of falling back to another face for a
+rare character.
 
 ## How it works
 
@@ -209,7 +180,7 @@ See [docs/architecture.md](docs/architecture.md) and
 Blink itemises text into script runs before shaping, so no rule can span a
 Han↔Kana boundary: `行った` is shaped as `行` + `った` and the okurigana that
 identifies the verb is in a different run. YomiFont does not guess to make up
-the difference — it abstains, so Chrome gets 48.9 % coverage at 99.87 %
+the difference — it abstains, so Chrome gets 49.0 % coverage at 99.86 %
 precision. [docs/compatibility.md](docs/compatibility.md).
 
 ## Repository layout
@@ -218,7 +189,7 @@ precision. [docs/compatibility.md](docs/compatibility.md).
 src/yomifont/       jmdict, jmnedict, lexicon, safety, alignment, conjugation,
                     rules, engine, layout, rubyglyphs, gsub, build
 scripts/            pipeline.py, evaluate.py
-tests/shaping/      214 shaping tests (HarfBuzz + CoreText)
+tests/shaping/      271 shaping tests (HarfBuzz + CoreText)
 tests/visual/       typography contact sheets and geometric metrics
 tests/integration/  browser harness and cross-engine comparison
 benchmarks/         scaling benchmark and results

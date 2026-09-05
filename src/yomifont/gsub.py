@@ -159,9 +159,9 @@ def build_chain_lookup(
     flush()
 
     if not subtables:
-        # No lexical rules at all (an explicit-ruby-only build). A Lookup with
-        # zero subtables is not something a validator has to accept, so emit
-        # nothing and let the caller wire up an empty feature.
+        # No lexical rules at all. A Lookup with zero subtables is not
+        # something a validator has to accept, so emit nothing and let the
+        # caller wire up an empty feature.
         return []
 
     lk = ot.Lookup()
@@ -181,8 +181,12 @@ def build_chain_lookup(
 # 32,765 mappings -- and rather less once anything else is packed in between.
 # fontTools cannot rescue this ("Don't know how to split GSUB lookup type 1"),
 # so the split has to happen here. It bites on the vert/vrt2 lookup, which maps
-# every ruby glyph to a blank: 14k of them without explicit ruby, 44k with it.
+# every ruby glyph to a blank -- 17k of them, and it was 44k when explicit ruby
+# was still built, which is where the overflow was actually hit.
 #
+# Kept at a value that still splits the current lookup rather than raised to
+# just above it: the ruby inventory grows with the rule set, and a limit that
+# only bites after the next few thousand rules is a limit nothing exercises.
 # Subtables of one lookup are tried in order and cover disjoint glyphs, so
 # splitting is exactly equivalent.
 MAX_SINGLE_SUBST = 16_000
@@ -217,190 +221,14 @@ def _extend(subtable, lookup_type: int):
     repair.  Doing it up front makes the packing deterministic and the build
     fast, and it is what large CJK fonts ship anyway.
 
-    It is *not* what makes explicit ruby compile.  That was a SingleSubst
-    overflow with a different cause; see MAX_SINGLE_SUBST.
+    It does not help with a subtable that is itself too big; that overflow has
+    a different cause and a different fix, see MAX_SINGLE_SUBST.
     """
     ext = ot.ExtensionSubst()
     ext.Format = 1
     ext.ExtensionLookupType = lookup_type
     ext.ExtSubTable = subtable
     return ext
-
-
-def build_explicit_lookups(
-    placements: dict[tuple[int, int], list[tuple[float, int]]],
-    hide: dict[str, str],
-    protect: dict[str, str],
-    ruby: dict[tuple[float, int], dict[str, str]],
-    coverage: dict[str, list[str]],
-    order: dict[str, int],
-    first_index: int,
-    split: dict | None = None,
-) -> list[ot.Lookup]:
-    """Explicit Ruby: one ChainContextSubst rule per expression *shape*.
-
-    `placements` maps (base length, ruby length) -> the (size, offset) each ruby
-    character needs; see `explicit`.  The returned lookups are appended to the
-    LookupList starting at `first_index`, and the expression lookup is last.
-
-    Format 3 (coverage per position) rather than Format 2 (classes) because a
-    kana has to be admissible in *both* the base and the ruby span -- ｜本気
-    （マジ）has kana on one side and ｜そら（ソラ）on both -- and a ClassDef can
-    only put a glyph in one class.  Coverage tables are sets, so the fullwidth
-    and ASCII delimiters cost nothing extra, and fontTools interns the
-    identical ones so the shared BASE coverage is written once.
-
-    Every SubstLookupRecord is a SingleSubst, so the glyph count never changes
-    and later sequence indices stay addressable -- the failure this module's
-    header warns about only bites when a record inserts or removes glyphs.
-    """
-    # Extension everywhere in here: see `_extend`. The ruby lookups need it to
-    # compile at all, and the other two are wrapped for consistency so the
-    # block has no Offset16 reaching across it.
-    lookups: list[ot.Lookup] = [build_single_subst_lookup(hide, extension=True)]
-    hide_idx = first_index
-    protect_idx = first_index + 1
-    lookups.append(build_single_subst_lookup(protect, extension=True))
-
-    ruby_idx: dict[tuple[float, int], int] = {}
-    for cell in sorted(ruby):
-        ruby_idx[cell] = first_index + len(lookups)
-        lookups.append(build_single_subst_lookup(ruby[cell], extension=True))
-
-    cov = {k: _coverage(v, order) for k, v in coverage.items()}
-    subtables = []
-    # Longest expressions first.  Nothing actually depends on it -- the open
-    # and close delimiters pin B and N uniquely -- but subtable order is
-    # priority order, so being explicit costs nothing and documents intent.
-    for (b, n), cells in sorted(placements.items(), key=lambda kv: (-kv[0][0], -kv[0][1])):
-        st = ot.ChainContextSubst()
-        st.Format = 3
-        st.BacktrackGlyphCount = 0
-        st.BacktrackCoverage = []
-        st.LookAheadGlyphCount = 0
-        st.LookAheadCoverage = []
-        st.InputCoverage = ([cov["start"]] + [cov["base"]] * b + [cov["open"]]
-                            + [cov["ruby"]] * n + [cov["close"]])
-        st.InputGlyphCount = len(st.InputCoverage)
-        records = [(0, hide_idx), (b + 1, hide_idx), (b + n + 2, hide_idx)]
-        records += [(1 + j, protect_idx) for j in range(b)]
-        records += [(b + 2 + i, ruby_idx[cells[i]]) for i in range(n)]
-        st.SubstLookupRecord = []
-        for idx, lk_idx in sorted(records):
-            rec = ot.SubstLookupRecord()
-            rec.SequenceIndex = idx
-            rec.LookupListIndex = lk_idx
-            st.SubstLookupRecord.append(rec)
-        st.SubstCount = len(st.SubstLookupRecord)
-        subtables.append(st)
-
-    # ---- the Blink fail-safe -------------------------------------------
-    # Blink itemises before shaping and always starts a new run at a Han->Kana
-    # boundary, so it never shows one rule the whole expression. Measured: the
-    # *prefix* ｜BASE（ does survive as one run, because Script=Common
-    # characters join the Han run (tests/integration/itemize_probe.html).
-    #
-    # Without this, Chrome renders ｜宇宙（そら） as visible markup *plus* the
-    # automatic reading うちゅう -- a reading the author explicitly replaced.
-    # These rules claim the base span on the strength of the prefix alone and
-    # do nothing else: no delimiter is hidden and no ruby is emitted, so the
-    # markup stays intact and the expression fails atomically.
-    #
-    # They come last. Subtables are tried in order, so wherever the full
-    # expression matched it has already consumed the span and these never run.
-    for b in range(1, max(b for b, _ in placements) + 1):
-        st = ot.ChainContextSubst()
-        st.Format = 3
-        st.BacktrackGlyphCount = 0
-        st.BacktrackCoverage = []
-        st.LookAheadGlyphCount = 0
-        st.LookAheadCoverage = []
-        st.InputCoverage = [cov["start"]] + [cov["base"]] * b + [cov["open"]]
-        st.InputGlyphCount = len(st.InputCoverage)
-        st.SubstLookupRecord = []
-        for j in range(b):
-            rec = ot.SubstLookupRecord()
-            rec.SequenceIndex = 1 + j
-            rec.LookupListIndex = protect_idx
-            st.SubstLookupRecord.append(rec)
-        st.SubstCount = len(st.SubstLookupRecord)
-        subtables.append(st)
-
-    # ---- the split form ------------------------------------------------
-    # Two rules that never have to see each other, so an engine that itemises
-    # the text into runs can still match both -- one in each. This is what
-    # makes a kanji base work in Blink; see `explicit.MARK`.
-    #
-    # They come after everything above. Where the whole expression did reach
-    # one buffer, the single-run rule has already consumed it and these never
-    # run, so engines that can do the better typography still do.
-    split = split or {}
-    if split:
-        s_cov = split["coverage"]
-        s_ruby = split["ruby"]
-        s_idx: dict[tuple[float, int], int] = {}
-        for cell in sorted(s_ruby):
-            s_idx[cell] = first_index + len(lookups)
-            lookups.append(build_single_subst_lookup(s_ruby[cell], extension=True))
-        scov = {k: _coverage(v, order) for k, v in s_cov.items()}
-
-        # run 1: BASE{b} ｜ （  -- base is the run of kanji before the marker
-        for b in range(1, split["base_max"] + 1):
-            st = ot.ChainContextSubst()
-            st.Format = 3
-            st.BacktrackGlyphCount = 0
-            st.BacktrackCoverage = []
-            st.LookAheadGlyphCount = 0
-            st.LookAheadCoverage = []
-            st.InputCoverage = ([scov["kanji"]] * b + [scov["mark"]]
-                                + [scov["open"]])
-            st.InputGlyphCount = len(st.InputCoverage)
-            st.SubstLookupRecord = []
-            for idx in range(b + 2):
-                rec = ot.SubstLookupRecord()
-                rec.SequenceIndex = idx
-                rec.LookupListIndex = hide_idx if idx >= b else protect_idx
-                st.SubstLookupRecord.append(rec)
-            st.SubstCount = len(st.SubstLookupRecord)
-            subtables.append(st)
-        # There is deliberately no marker-less variant. `BASE{b} 《` would be
-        # convenient -- Aozora allows it -- but the first run cannot see whether
-        # a reading follows, so it would hide the 《 of any 漢字《…》 in ordinary
-        # prose: 小説《ノルウェイの森》 came out as 小説ノルウェイの森》, with the
-        # opening bracket gone and the closing one left. The marker is what
-        # makes the intent visible inside the first run.
-        # run 2: RUBY{n} ） ｜
-        for n in range(1, split["ruby_max"] + 1):
-            st = ot.ChainContextSubst()
-            st.Format = 3
-            st.BacktrackGlyphCount = 0
-            st.BacktrackCoverage = []
-            st.LookAheadGlyphCount = 0
-            st.LookAheadCoverage = []
-            st.InputCoverage = ([scov["ruby"]] * n + [scov["close"]]
-                                + [scov["mark"]])
-            st.InputGlyphCount = len(st.InputCoverage)
-            st.SubstLookupRecord = []
-            for i, cell in enumerate(split["cells"][n]):
-                rec = ot.SubstLookupRecord()
-                rec.SequenceIndex = i
-                rec.LookupListIndex = s_idx[cell]
-                st.SubstLookupRecord.append(rec)
-            for k in (n, n + 1):
-                rec = ot.SubstLookupRecord()
-                rec.SequenceIndex = k
-                rec.LookupListIndex = hide_idx
-                st.SubstLookupRecord.append(rec)
-            st.SubstCount = len(st.SubstLookupRecord)
-            subtables.append(st)
-
-    lk = ot.Lookup()
-    lk.LookupType = 7
-    lk.LookupFlag = 0
-    lk.SubTable = [_extend(st, 6) for st in subtables]
-    lk.SubTableCount = len(lk.SubTable)
-    lookups.append(lk)
-    return lookups
 
 
 SCRIPTS = ["DFLT", "hani", "kana", "latn"]

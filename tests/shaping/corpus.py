@@ -102,88 +102,23 @@ SENTENCES = [
 ]
 
 # --------------------------------------------------------------------------
-# Explicit Ruby: ｜BASE（RUBY） / |BASE(RUBY)
-#
-# (text, base length in em, reading).  The reading is asserted as one string
-# rather than as groups: an explicit expression is always exactly one group,
-# and `ruby_runs` splits a widely distributed group (two kana over a three
-# character base) on its inter-kana gap, which is correct for the automatic
-# side and meaningless here.
-EXPLICIT = [
-    ("｜月（ライト）", 1, "ライト"),
-    ("｜宇宙（そら）", 2, "そら"),
-    ("｜本気（マジ）", 2, "マジ"),
-    ("｜強敵（とも）", 2, "とも"),
-    ("｜東京（とうきょう）", 2, "とうきょう"),
-    ("｜日本語能力試験（にほんごのうりょくしけん）", 7, "にほんごのうりょくしけん"),
-    # the reading wins over the dictionary, however unusual
-    ("｜東京（エド）", 2, "エド"),
-    ("｜猫（いぬ）", 1, "いぬ"),
-    # no dictionary is consulted, so an unseen base works
-    ("｜超絶暗黒剣（ダークネスブレード）", 5, "ダークネスブレード"),
-    ("｜未知語（オリジナルヨミ）", 3, "オリジナルヨミ"),
-    # kana, Latin and digits are all admissible as *bases*
-    ("｜ほんき（マジ）", 3, "マジ"),
-    ("｜AI（エーアイ）", None, "エーアイ"),
-    ("｜2026（にせんにじゅうろく）", None, "にせんにじゅうろく"),
-    # the whole supported ruby alphabet
-    ("｜阿（ぁぃぅぇぉっゃゅょ）", 1, "ぁぃぅぇぉっゃゅょ"),
-    ("｜阿（ガギグゲゴパピプペポ）", 1, "ガギグゲゴパピプペポ"),
-    ("｜阿（ヴーヽヾ・）", 1, "ヴーヽヾ・"),
-    # limits
-    ("｜一二三四五六七八（あ）", 8, "あ"),
-]
-
-# The Aozora form: 〇BASE《RUBY》, and the marker is optional when the base is
-# a run of kanji. This is the form that survives Blink's run split, because it
-# compiles to two rules that never have to see each other.
-EXPLICIT_SPLIT = [
-    ("月｜（ライト）｜", 1, "ライト"),
-    ("東京｜（エド）｜", 2, "エド"),
-    ("宇宙｜（そら）｜", 2, "そら"),
-    ("強敵｜（とも）｜", 2, "とも"),
-    ("日本語能力試験｜（にほんごのうりょくしけん）｜", 7, "にほんごのうりょくしけん"),
-    ("超絶暗黒剣｜（ダークネスブレード）｜", 5, "ダークネスブレード"),
-    # ASCII throughout, for editors and code
-    ("月|(ライト)|", 1, "ライト"),
-    ("東京|(エド)|", 2, "エド"),
-]
-
-# Both markers are load-bearing against ordinary prose: without the one after
-# the base, `BASE（` eats the bracket of 価格（税別）; without the one after the
-# close, `KANA+ ）` swallows 私（わたし）. None of these may lose a character.
-SPLIT_UNMARKED = [
-    "私（わたし）", "価格（税別）", "月（ライト）", "（ですます）",
-    "小説《ノルウェイの森》", "表｜裏", "第一｜第二",
-]
-
-# The ASCII syntax must produce an identical glyph stream.
-EXPLICIT_ASCII = [
-    ("|月(ライト)", "｜月（ライト）"),
-    ("|東京(とうきょう)", "｜東京（とうきょう）"),
-    ("|強敵(とも)", "｜強敵（とも）"),
-    ("|日本語能力試験(にほんごのうりょくしけん)",
-     "｜日本語能力試験（にほんごのうりょくしけん）"),
-    ("|AI(エーアイ)", "｜AI（エーアイ）"),
-]
-
-# Malformed or out-of-range markup must be left exactly as typed -- visible,
-# unshaped, and never partially transformed.
-EXPLICIT_MALFORMED = [
-    ("｜月（ライト", "no closing delimiter"),
-    ("｜月ライト）", "no opening delimiter"),
-    ("｜（ライト）", "empty base"),
-    ("｜月（）", "empty ruby"),
-    ("｜（）", "both empty"),
-    ("｜月", "marker with no expression"),
-    ("月（ライトという意味）", "parentheses alone must never start ruby"),
-    ("|月(ライト", "ascii, no closing delimiter"),
-    ("|月ライト)", "ascii, no opening delimiter"),
-    ("a|b|c", "bare vertical bars in ordinary text"),
-    ("f(x) = |x| + 1", "ascii punctuation in ordinary text"),
-    ("｜月（漢字）", "ruby characters outside the supported alphabet"),
-    ("｜一二三四五六七八九（あ）", "base longer than the limit (9 > 8)"),
-    ("｜月（あいうえおかきくけこさしすせそたち）", "ruby longer than the limit (17 > 16)"),
+# Author-supplied ruby (｜BASE（RUBY）｜) was built and then removed: it worked,
+# but marking up every word by hand was more trouble than it was worth, and its
+# glyph inventory was 31,701 of the font's 63,070 glyphs.  What has to survive
+# the removal is that the delimiters it used are once again ordinary characters:
+# brackets and vertical bars must reach the reader exactly as typed, with no
+# ruby of their own and nothing swallowed.
+PUNCTUATION_INTACT = [
+    "私（わたし）",
+    "価格（税別）",
+    "月（ライト）",
+    "（ですます）",
+    "小説《ノルウェイの森》",
+    "表｜裏",
+    "第一｜第二",
+    "a|b|c",
+    "f(x) = |x| + 1",
+    "｜月（ライト）｜",
 ]
 
 # Text that must produce NO ruby at all.

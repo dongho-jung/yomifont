@@ -3,7 +3,7 @@
 Reproduce with:
 
 ```bash
-make test                                   # HarfBuzz + CoreText, 214 assertions
+make test                                   # HarfBuzz + CoreText, 271 assertions
 ./tests/integration/server.py &             # serve the repo
 open http://127.0.0.1:8777/tests/integration/engine_probe.html   # in each browser
 ./tests/integration/compare_engines.py      # compare against a HarfBuzz reference
@@ -11,21 +11,17 @@ open http://127.0.0.1:8777/tests/integration/engine_probe.html   # in each brows
 
 ## Summary
 
-| engine | GSUB runs | readings correct | abstentions honoured | coverage | explicit ruby | notes |
-|---|---|---|---|---|---|---|
-| HarfBuzz 14.2.1 (`hb-shape`, `uharfbuzz`) | yes | 99.94 % | yes | 79.1 % | all cases | reference |
-| CoreText (macOS 26.5, `tools/ctshape`) | yes | identical glyph stream to HarfBuzz | yes | 79.1 % | all cases | |
-| Safari 26.6 / WebKit | yes | **16/16 probe cases match HarfBuzz exactly** | yes | 79.1 % | **18/18** | |
-| Chrome 152 / Blink | yes, but script-segmented | 99.87 % | yes | **48.9 %** | **6/18, kana bases only** | |
-| Firefox | not tested (not installed) | | | | | |
-| DirectWrite / Windows | not tested (no Windows host) | | | | | |
-| Word / LibreOffice / Adobe | not tested | | | | | |
+| engine | GSUB runs | readings correct | abstentions honoured | coverage | notes |
+|---|---|---|---|---|---|
+| HarfBuzz 14.2.1 (`hb-shape`, `uharfbuzz`) | yes | 99.96 % | yes | 79.1 % | reference |
+| CoreText (macOS 26.5, `tools/ctshape`) | yes | identical glyph stream to HarfBuzz | yes | 79.1 % | |
+| Safari 26.6 / WebKit | yes | **16/16 probe cases match HarfBuzz exactly** | yes | 79.1 % | |
+| Chrome 152 / Blink | yes, but script-segmented | 99.86 % | yes | **49.0 %** | |
+| Firefox | not tested (not installed) | | | | |
+| DirectWrite / Windows | not tested (no Windows host) | | | | |
+| Word / LibreOffice / Adobe | not tested | | | | |
 
 Untested rows are untested, not "probably fine".
-
-Explicit ruby is measured separately by `explicit_probe.html`; the per-case
-results and the reason Blink can only manage kana bases are in
-[explicit-ruby.md](explicit-ruby.md).
 
 ## Resolved: the Chrome 152 "Phase 2 renders no ruby" issue
 
@@ -55,7 +51,7 @@ Two further checks separate the layers:
   composites straight into `cmap`, so no shaping is involved. Chrome draws
   **all** of them — one-level and two-level composites, at y=900 and y=940, and
   at an x offset of −6,900 units. So rasterisation was never the problem.
-* `explicit_probe.html` measures the DOM inline-box width, and Chrome collapses
+* `itemize_probe.html` measures the DOM inline-box width, and Chrome collapses
   it exactly as expected wherever the run is not script-split. So GSUB is
   applied in the DOM path.
 
@@ -67,7 +63,7 @@ Chrome; use the DOM screenshot or the width measurement instead.
 
 **Glyph-stream equality.** `tests/shaping/test_shaping.py` shapes every corpus
 case with both `uharfbuzz` and CoreText and asserts the glyph names and
-advances are identical — 214 assertions, all passing. This includes the
+advances are identical — 271 assertions, all passing. This includes the
 abstention cases: 市場, 人気, 生物, 大人, 人, 時, 中, 強い, 行った, 僕, 大丈夫
 must all produce **zero** ruby glyphs.
 
@@ -132,13 +128,15 @@ So the rule is not "special characters break runs". Common-script characters
 prefix `｜月（` is one run. What Blink will not do is put Han and Kana in the
 same run, whatever sits between them.
 
-**Consequence for explicit ruby.** No character encoding of the syntax can put
-a Han base and a Kana reading in one run — not punctuation, not joiners, not
-variation selectors, not PUA. What that rules out is a rule that needs to see
-both at once. It does *not* rule out the feature: `｜BASE（` is one run and
-`RUBY）｜` is another, so a pair of rules, one per run, reaches a kanji base
-after all. Demonstrated in Chrome 152; see
-[explicit-ruby.md](explicit-ruby.md).
+**Consequence.** Nothing can be placed between a kanji and the kana after it
+that makes Blink shape them together — not punctuation, not joiners, not
+variation selectors, not PUA. Any rule that has to see a kanji and a kana at
+once is unreachable in Chrome, which is exactly the okurigana case below.
+
+An author-supplied ruby syntax did work around this, by splitting into two
+rules that never have to see each other — `BASE｜（` is one run and
+`RUBY）｜` is another. It was built, demonstrated in Chrome 152, and then
+removed as not worth the markup; commit `6ca0452`.
 
 A caution about this probe. It reads "one em narrower" as "this case's rule
 fired", which cannot be told apart from a *shorter* case's rule firing on a
@@ -155,6 +153,21 @@ fail-safe therefore only works for the fullwidth form.
 Blink itemises a text node into script runs *before* shaping, so no GSUB rule
 can match across a Han↔Kana boundary. `行った` is shaped as `行` plus `った`, and
 the okurigana that identifies the verb is in a different shaping call.
+
+This is what a reader actually notices, and it has nothing to do with the
+reading being uncertain:
+
+| text | runs Blink hands to the font | Chrome |
+|---|---|---|
+| `生きる` | `生` \| `きる` | no ruby — `生` alone could be い, う, は, しょう |
+| `生まれた` | `生` \| `まれた` | no ruby |
+| `行く` | `行` \| `く` | no ruby |
+| `一ヶ月` | `一` \| `ヶ` \| `月` | no ruby — `ヶ` is Katakana, so three runs |
+| `東京都新宿区` | `東京都新宿区` | とうきょうと / しんじゅくく |
+
+All-kanji words are unaffected, which is why proper nouns and compounds carry
+most of Chrome's remaining coverage. Restarting the browser cannot change any
+of this: itemisation happens before the font is consulted.
 
 This was confirmed by prediction in Phase 1: for every test string, Chrome's
 output was exactly what HarfBuzz produces when each maximal Han run is shaped
@@ -175,9 +188,9 @@ separate them.
 
 | | HarfBuzz / CoreText | Blink model |
 |---|---|---|
-| precision | 99.942 % | 99.868 % |
-| wrong readings (20k sentences) | 31 | 45 |
-| coverage | 79.1 % | 48.9 % |
+| precision | 99.963 % | 99.857 % |
+| wrong readings (20k sentences) | 20 | 49 |
+| coverage | 79.1 % | 49.0 % |
 
 Chrome gets **half the coverage and the same precision**. That is the intended
 trade: engine-specific coverage differences are acceptable, engine-specific

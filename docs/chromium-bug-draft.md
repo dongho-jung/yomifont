@@ -31,14 +31,14 @@ boundaries, even when both characters come from the same font and
 `font-kerning: normal` is explicitly set. The test below defines eight kerning
 pairs: the four control pairs are applied, the four Han–Kana pairs are not.
 
-Safari, CoreText and HarfBuzz apply all eight with the same font.
+Safari applies all eight with the same font.
 
 ### Steps to reproduce
 
-No preinstalled Japanese font carries a kern pair across this boundary —
-Hiragino Kaku Gothic W3, Hiragino Mincho ProN and Noto Sans JP have 5,982 CJK
-pairs between them and not one is Han–Kana — so the case needs a font built for
-it. These two files build one from any Japanese font you already have.
+I found no Han–Kana kern pair in the three fonts I inspected — Hiragino Kaku
+Gothic W3, Hiragino Mincho ProN and Noto Sans JP, which have 5,982 CJK pairs
+between them — so the case needs a font built for it. These two files build one
+from any Japanese font you already have.
 
 `build.py`
 
@@ -83,9 +83,9 @@ print(f"Expected reduction at 100px: {-kern / font['head'].unitsPerEm * 100:.2f}
 <div id="stage"><span id="probe"></span></div>
 <pre id="out">Loading test font…</pre>
 <script>
-// Two channels, because each engine breaks a different one: WebKit's inline-box
-// width ignores GPOS, and Chrome's canvas 2D does not apply the feature. A pair
-// counts as kerned if either channel sees the reduction.
+// Two channels, reported separately. Each browser responds on only one of them
+// -- the control pairs, which are inside a single script run by construction,
+// show which channel to read.
 const pairs = ["漢字", "あい", "アイ", "あア", "漢あ", "あ漢", "漢ア", "ア漢"];
 const probe = document.getElementById("probe");
 const out = document.getElementById("out");
@@ -96,21 +96,23 @@ const dom = (text, kerning) => {
   probe.textContent = text;
   return probe.getBoundingClientRect().width;
 };
-const canvas = text => { ctx.font = "100px K"; return ctx.measureText(text).width; };
+const canvas = (text, kerning) => {
+  ctx.font = "100px K";
+  if ("fontKerning" in ctx) ctx.fontKerning = kerning;
+  return ctx.measureText(text).width;
+};
 
 (async () => {
   const faces = await document.fonts.load("100px K", pairs.join(""));
   await document.fonts.ready;
   if (!faces.length) throw new Error("Test font was not loaded");
 
-  const rows = pairs.map(text => {
-    const d = dom(text, "none") - dom(text, "normal");
-    const c = canvas(text[0]) + canvas(text[1]) - canvas(text);
-    return { text, d, c, kerned: Math.max(d, c) > 25 };
-  });
-  out.textContent = "pair  DOM     canvas  kerned\n" + rows.map(r =>
-    `${r.text}  ${r.d.toFixed(2).padStart(6)}  ${r.c.toFixed(2).padStart(6)}  `
-    + (r.kerned ? "yes" : "NO")).join("\n");
+  // Reported per channel, not combined: they measure differently and each
+  // browser responds on only one of them. The control rows say which.
+  out.textContent = "pair  DOM none/normal   canvas none/normal\n" + pairs.map(t =>
+    `${t}  ${dom(t, "none").toFixed(0).padStart(4)}/${dom(t, "normal").toFixed(0).padEnd(11)}`
+    + `${canvas(t, "none").toFixed(0).padStart(4)}/${canvas(t, "normal").toFixed(0)}`
+  ).join("\n");
 })().catch(e => { out.textContent = `ERROR: ${e.message}`; });
 </script>
 </html>
@@ -135,38 +137,45 @@ between the two measurements.
 
 All eight pairs are reduced by 50 px.
 
-### Actual — Chrome 152.0.7977.76, macOS 26.6.2
+### Actual
 
-| pair | transition | DOM reduction | kerned |
-|---|---|---:|---|
-| 漢字 | Han → Han | 50.00px | yes |
-| あい | Hiragana → Hiragana | 50.00px | yes |
-| アイ | Katakana → Katakana | 50.00px | yes |
-| あア | Hiragana → Katakana | 50.00px | yes |
-| **漢あ** | **Han → Hiragana** | **0.00px** | **no** |
-| **あ漢** | **Hiragana → Han** | **0.00px** | **no** |
-| **漢ア** | **Han → Katakana** | **0.00px** | **no** |
-| **ア漢** | **Katakana → Han** | **0.00px** | **no** |
+Chrome 152.0.7977.76 and Safari 26.6.2, macOS 26.6.2. Widths in px at 100 px
+font size, `font-kerning: none` / `normal`:
 
-The first four rows are controls: each sits inside a single script run, so if
-any of them reported "no" the measurement would be broken rather than the
-engine. Only the four Han–Kana pairs fail.
+| pair | transition | Chrome DOM | Chrome canvas | Safari DOM | Safari canvas |
+|---|---|---|---|---|---|
+| 漢字 | Han → Han *(control)* | 200 / **150** | 200 / 200 | 200 / 200 | **150 / 150** |
+| あい | Hira → Hira *(control)* | 200 / **150** | 200 / 200 | 200 / 200 | **150 / 150** |
+| アイ | Kata → Kata *(control)* | 200 / **150** | 200 / 200 | 200 / 200 | **150 / 150** |
+| あア | Hira → Kata *(control)* | 200 / **150** | 200 / 200 | 200 / 200 | **150 / 150** |
+| **漢あ** | **Han → Hira** | **200 / 200** | 200 / 200 | 200 / 200 | **150 / 150** |
+| **あ漢** | **Hira → Han** | **200 / 200** | 200 / 200 | 200 / 200 | **150 / 150** |
+| **漢ア** | **Han → Kata** | **200 / 200** | 200 / 200 | 200 / 200 | **150 / 150** |
+| **ア漢** | **Kata → Han** | **200 / 200** | 200 / 200 | 200 / 200 | **150 / 150** |
 
-### Other engines, same font
+The four control pairs sit inside a single script run by construction, so they
+show which channel is meaningful in each browser. In Chrome only the DOM
+channel responds — its canvas reports 200 for every pair, controls included. In
+Safari it is the other way round: its DOM reports 200 for every pair, controls
+included, and its canvas reports 150 for every pair. What these measurements
+show is which channel isolates the effect; they do not by themselves establish
+why the other channel does not.
 
-| engine | version | result |
+Reading each browser on the channel where its controls respond: **漢あ is
+kerned in Safari and is not kerned in Chrome**, while the control 漢字 is
+kerned in both.
+
+### Shaping the same font outside a browser
+
+| shaper | version | result |
 |---|---|---|
-| Chrome / Blink | 152.0.7977.76 | the four Han–Kana pairs fail |
-| Safari / WebKit | 26.6.2 | all eight kern |
-| CoreText, via a direct shaping call | macOS 26.6.2 | all eight kern |
-| HarfBuzz, whole string in one buffer | 14.4.0 | all eight kern |
+| CoreText, one call per pair | macOS 26.6.2 | all eight pairs kerned |
+| HarfBuzz, whole pair in one buffer | 14.4.0 | all eight pairs kerned |
 
-The two measurement channels matter here. On the DOM channel alone Safari
-reports every pair unkerned, controls included, because WebKit's inline-box
-width ignores GPOS; the canvas channel shows all eight kerned there. Chrome is
-the other way round — its canvas 2D does not apply the feature at all, so the
-DOM numbers above are the ones to read. Running only one channel gives a wrong
-answer for one of the two engines.
+The HarfBuzz row is a check that the font's lookups are well formed — it hands
+the shaper both characters in one buffer, which is the thing under discussion,
+so it says nothing about where a browser ought to split. CoreText is doing its
+own segmentation, and it is what WebKit shapes with on macOS.
 
 This prevents font-defined pair kerning across Han–Kana boundaries in Japanese
 text — including between a kanji and its okurigana — with no font change, no
@@ -234,19 +243,25 @@ here is not.
 
 Two things I checked, because they are the obvious objections.
 
-**The OpenType script tag looks like a formality here.** Han maps to `hani` and
-Kana to `kana`, so a merge has to pick one. Shaping the same Han+Kana string
-with the tag forced to `hani`, `kana` or `DFLT` gave me an identical glyph
-stream, and every shipping Japanese font I checked registers the same feature
-set under both tags:
+**In the fonts I checked, the script tag makes no difference.** Han maps to
+`hani` and Kana to `kana`, so a merge has to pick one. Shaping the same Han+Kana
+string with the tag forced to `hani`, `kana` or `DFLT` gave me an identical
+glyph stream. Same feature tags is not enough on its own — a tag can point to
+different lookups under different scripts — so I compared the resolved lookup
+indices, and in these fonts `hani` and `kana` reach the *same* lookups in both
+GSUB and GPOS:
 
-| font | `hani` vs `kana` |
-|---|---|
-| Hiragino Kaku Gothic W3 | identical |
-| Hiragino Mincho ProN | identical |
-| Hiragino Sans GB | identical |
-| Noto Sans JP | identical |
-| Arial Unicode (pan-Unicode, not a JP font) | differ — `locl salt smpl trad` under `hani` only |
+| font | feature tags | lookup indices (GSUB / GPOS) |
+|---|---|---|
+| Hiragino Kaku Gothic W3 | identical | identical |
+| Hiragino Mincho ProN | identical | identical |
+| Hiragino Sans GB | identical | identical |
+| Noto Sans JP | identical | identical |
+| Arial Unicode (pan-Unicode, not a JP font) | differ — `locl salt smpl trad` under `hani` only | — |
+
+Four fonts is not a survey, and a font *may* legitimately point the same tag at
+different lookups per script. So this is a precondition to check, not something
+to assume.
 
 **Neither script has a complex shaper**, so merging does not change which
 shaper runs.
@@ -260,10 +275,12 @@ Not `ScriptRunIterator` — merging there changes which font gets picked, which
 is the part that cannot be argued to be safe.
 
 Instead: merge adjacent Han and Kana segments **after fallback has resolved,
-and only when both resolved to the same font**. Under that condition the merge
-is a no-op by construction — the same font shapes the same characters with the
-same features — and the only observable difference is that a lookup spanning
-the boundary now fires. A font with no such lookup renders identically.
+and only when both resolved to the same font** — and, since the merged run has
+to pick one script tag, only when that font resolves `hani` and `kana` to the
+same lookups. That second condition is what makes the merge inert for a font
+that does not have a lookup spanning the boundary; without it, "same font" alone
+does not guarantee the same features apply. Both conditions are computable once
+per font and cacheable.
 
 A cheaper approximation of the same ordering, without restructuring the
 fallback loop: resolve only the first fallback font per segment, group adjacent

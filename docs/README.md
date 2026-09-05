@@ -8,5 +8,7 @@
 - [compatibility.md](compatibility.md) — engine-by-engine results and the Blink
   script-segmentation finding
 - [limitations.md](limitations.md) — what a font fundamentally cannot do
+- [chromium-bug-draft.md](chromium-bug-draft.md) — the Han↔Kana run-split
+  finding, written up as a Chromium bug
 - [licensing.md](licensing.md) — JMdict, Noto, UniDic, Tatoeba obligations
 - [roadmap.md](roadmap.md) — where this goes next

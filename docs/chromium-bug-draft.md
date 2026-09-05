@@ -30,18 +30,67 @@ macOS text, and in HarfBuzz when the string is shaped in one buffer.
 
 ### Steps to reproduce
 
-Save the attached `blink-han-kana-kerning-repro.html` and open it. It is
-self-contained: no server, no external resources.
+No preinstalled Japanese font carries a kern pair across this boundary — I
+checked Hiragino Kaku Gothic W3, Hiragino Mincho ProN and Noto Sans JP, and
+between them they have 5,982 CJK pairs and not one Han↔Kana pair — so the case
+needs a font built for it. This builds one from any Japanese font you already
+have, in two files:
 
-It embeds a 148-glyph subset of Noto Sans JP (SIL OFL 1.1) whose only feature
-is a `kern` pair of −500/1000 em on each transition in the table. The font has
-no GSUB. At 100 px that kern is 50 px, so a pair that reached GPOS as one run
-measures 50 px narrower than its two characters measured separately. The page
-prints the table below.
+`build.py`
+
+```python
+# pip install fonttools ; pass any Japanese font, e.g. Noto Sans JP or Hiragino
+import sys
+from fontTools.ttLib import TTFont
+from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
+
+PAIRS = [("漢","字"), ("あ","い"), ("ア","イ"), ("あ","ア"),   # controls: one script run
+         ("漢","あ"), ("あ","漢"), ("漢","ア"), ("ア","漢")]   # across Han <-> Kana
+
+f = TTFont(sys.argv[1], fontNumber=0)
+cm = f.getBestCmap()
+fea = "feature kern {\n" + "".join(
+    f"  pos {cm[ord(a)]} {cm[ord(b)]} -500;\n" for a, b in PAIRS) + "} kern;\n"
+addOpenTypeFeaturesFromString(f, fea)
+f.save("kernprobe.ttf")
+```
+
+`probe.html`, in the same directory
+
+```html
+<meta charset="utf-8">
+<style>@font-face{font-family:K;src:url(kernprobe.ttf)}
+ span{font-family:K;font-size:100px}</style>
+<div id="o"></div>
+<script>
+const P=[["漢","字"],["あ","い"],["ア","イ"],["あ","ア"],
+         ["漢","あ"],["あ","漢"],["漢","ア"],["ア","漢"]];
+const s=document.createElement("span");document.body.append(s);
+const w=t=>{s.textContent=t;return s.getBoundingClientRect().width};
+const c=document.createElement("canvas").getContext("2d");
+const cw=t=>{c.font="100px K";return c.measureText(t).width};
+document.fonts.load("100px K").then(()=>document.fonts.ready).then(()=>{
+  o.innerHTML=P.map(([a,b])=>{
+    const d=Math.max(w(a)+w(b)-w(a+b), cw(a)+cw(b)-cw(a+b));
+    return `${a}${b}  saved ${d.toFixed(0)}px  ${d>25?"KERNED":"NOT KERNED"}`;
+  }).join("<br>");
+});
+</script>
+```
+
+```
+python3 build.py /path/to/NotoSansJP-Regular.ttf
+open probe.html
+```
+
+The only thing added to the font is a `kern` pair of −500/1000 em on each of
+those eight pairs; nothing else is touched and no GSUB is involved. At 100 px
+that is 50 px, so a pair that reached GPOS as one run measures 50 px narrower
+than its two characters measured separately.
 
 ### Expected
 
-All ten pairs are kerned. The font declares a `kern` pair for each and
+All eight pairs are kerned. The font declares a `kern` pair for each and
 `font-kerning: normal` is in effect.
 
 ### Actual — Chrome 152.0.7977.76
@@ -52,19 +101,18 @@ All ten pairs are kerned. The font declares a `kern` pair for each and
 | あい | Hiragana → Hiragana | yes |
 | アイ | Katakana → Katakana | yes |
 | あア | Hiragana → Katakana | yes |
-| 漢1 | Han → digit (Common) | yes |
 | **漢あ** | **Han → Hiragana** | **no** |
 | **あ漢** | **Hiragana → Han** | **no** |
 | **漢ア** | **Han → Katakana** | **no** |
 | **ア漢** | **Katakana → Han** | **no** |
-| **漢A** | **Han → Latin** | **no** |
 
 So a Japanese font cannot adjust the spacing between a kanji and the kana that
 follows it — the most common adjacency in the language.
 
-The first three rows are controls: they sit inside a single script run by
-construction, so if they were to report "no" the measurement would be broken
-rather than the engine. The page reads two independent channels, DOM
+The first four rows are controls: each sits inside a single script run by
+construction — Blink merges Hiragana with Katakana deliberately, see below — so
+if any of them reported "no" the measurement would be broken rather than the
+engine. The page reads two independent channels, DOM
 inline-box width and canvas `measureText`, and counts a pair as kerned if
 either sees it. That matters for the cross-engine numbers below: WebKit's
 inline-box width ignores GPOS, so on the DOM channel alone Safari reports every
@@ -74,10 +122,10 @@ pair unkerned, controls included.
 
 | engine | version | result |
 |---|---|---|
-| Chrome / Blink | 152.0.7977.76 | 5 of 10 fail |
-| Safari / WebKit | 26.6.2 | 10 of 10 kern |
-| CoreText, via a direct shaping call | macOS 26.6.2 | 10 of 10 kern |
-| HarfBuzz, whole string in one buffer | 14.4.0 | 10 of 10 kern |
+| Chrome / Blink | 152.0.7977.76 | the four Han↔Kana pairs fail |
+| Safari / WebKit | 26.6.2 | all eight kern |
+| CoreText, via a direct shaping call | macOS 26.6.2 | all eight kern |
+| HarfBuzz, whole string in one buffer | 14.4.0 | all eight kern |
 
 Firefox is not in the table because it was not tested.
 
@@ -182,7 +230,7 @@ segments that share it, and let the existing reshape queue handle fallback
 inside a group.
 
 I am happy to implement this behind a `base::Feature` and write the layout
-test — the probe font is 15 KB and deterministic — but I would rather hear
+test — but I would rather hear
 which direction you want first. I have not uploaded a CL.
 
 ### A smaller, separable one
@@ -198,7 +246,7 @@ The duplicate finder surfaced these, and they look like the same mechanism at
 different boundaries rather than duplicates of each other:
 
 * "Kerning is not being applied between CJK punctuation and glyphs from
-  non-CJK scripts" (P2) — overlaps the 漢A row above
+  non-CJK scripts" (P2) — Han→Latin fails the same way in my measurements
 * "Ligatures don't work after Korean character" (P3)
 * "Ligatures between emoji and non-emoji codepoints are not applied" (P3) —
   the `SymbolsIterator` boundary rather than the script one
